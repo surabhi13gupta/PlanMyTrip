@@ -151,7 +151,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
   - After creating, editing, or deleting a trip, the app refreshes `['trips']` and `['trip', tripId]`.
   - After adding, editing, or deleting an activity, the app refreshes `['trip', tripId]`. These changes are not shown before the server confirms them, because that's simpler and the API is fast enough.
   - On logout, the app clears the whole query cache.
-- **Local / persisted state:** Form state lives in React Hook Form. Nothing is stored in localStorage; the login session is held in a cookie (section 8).
+- **Local / persisted state:** Form state lives in React Hook Form. The login session is held in a cookie (section 8). The only thing the app stores in the browser is a `pmt-tab-logged-in` marker in **sessionStorage** (section 8), which says "this tab has logged in". Nothing is stored in localStorage.
 
 ## 7. User Flows
 1. **First-time user**
@@ -170,16 +170,29 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
    1. Clicks "Edit" → moves the end date two days earlier → Save
    2. Sees the warning with how many activities will be deleted
    3. Confirms → returns to the plan, which now has fewer days. (Or cancels → nothing changes.)
-5. **Session expired**
+5. **Closing and reopening**
+   1. The user closes the tab while adding "Dinner cruise" (the form is filled in but not saved yet)
+   2. The app saves "Dinner cruise" in the background as the page closes
+   3. Later, the user opens the app again → the app logs out the old session → login page
+   4. After logging in, "Dinner cruise" is on the plan
+6. **Session expired**
    1. Any API call returns 401
    2. The app clears the cache and sends the user to `/login?redirect=<current path>` with a toast: "Please log in again."
 
 ## 8. Authentication (Client Side)
 - **Login / signup flow:** On success, the backend sets the session cookie and returns the user. The frontend stores that user in the `['me']` query and navigates.
 - **Token storage:** The login token is kept in an `httpOnly`, `Secure` (except in local development, which runs on plain `http://localhost`), `SameSite=Lax` cookie set by the backend. Page scripts cannot read it, so it is safe from XSS. The frontend never stores or reads the token; it sends every request with `credentials: 'include'`. *(Matches [backend-spec.md §6](./backend-spec.md#6-authentication--authorization).)*
-- **Startup:** When the app loads, it calls `GET /auth/me` and shows a full-page spinner until the answer arrives. A 200 means logged in; a 401 means logged out.
+- **Logged out when the page closes:** Closing the tab or the browser logs the user out; the next visit asks them to log in. Refreshing the page keeps them logged in.
+  - After a successful login or signup, the app sets `pmt-tab-logged-in` in **sessionStorage**. sessionStorage belongs to one tab: it survives a refresh, but the browser wipes it when the tab closes.
+  - The app can't log out *at* the moment of closing, because browsers fire the same event for closing and for refreshing. Instead, the logout happens on the next visit (see Startup).
+  - Opening the app in a new tab also asks for login, because the new tab has no marker.
+  - On phones, if the browser closes a tab in the background to save memory, the user is asked to log in again.
+- **Startup:** When the app loads, it shows a full-page spinner and then:
+  1. **No `pmt-tab-logged-in` marker** (a fresh visit after the page was closed, or a new tab): calls `POST /auth/logout` to end any session left in the browser, then shows the login page.
+  2. **Marker present** (a refresh): calls `GET /auth/me`. A 200 means logged in; a 401 means the session ended (e.g. after 12 hours idle), so the marker is removed and the login page is shown.
 - **Protected route handling:** `ProtectedRoute` and `PublicOnlyRoute` apply the route rules in section 3.
-- **Logout:** `POST /auth/logout`, then the app clears the query cache and goes to `/login`.
+- **Logout:** `POST /auth/logout`, then the app removes the `pmt-tab-logged-in` marker, clears the query cache, and goes to `/login`.
+- **Saving the last edit when the page closes:** see section 12.
 
 ## 9. Forms & Validation
 Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backend enforces the same rules.
@@ -229,14 +242,18 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 ## 12. Error Handling & Notifications
 - **API error display:** The API client turns non-2xx responses into an `ApiError` with `status`, `code`, `message`, and `details` (the error format in [api-contract-spec.md](./api-contract-spec.md#2-standard-error-response)).
   - 400: field errors on the form
-  - 401 `UNAUTHORIZED`: the session-expired flow (section 7, flow 5), except for `GET /auth/me` at startup, where it just means "logged out"
+  - 401 `UNAUTHORIZED`: the session-expired flow (section 7, flow 6), except for `GET /auth/me` at startup, where it just means "logged out"
   - 401 `INVALID_CREDENTIALS`: the login form's "Invalid username or password." message
   - 404: Not Found page
   - 409: shown on the related field (e.g. username taken), or the shortening warning on Edit Trip (`ACTIVITIES_WOULD_BE_DELETED`)
-  - 429 on login: message above the form: "Too many failed attempts. Please try again in 15 minutes."
   - 503: toast "The service is starting up or unavailable. Please try again in a moment."
   - 5xx or network error: toast "Something went wrong. Please try again."
 - **Toasts / banners:** Success toasts for creating, editing, and deleting trips. Error toasts for saves that fail. Saving activities shows no success toast, because the change on screen is confirmation enough.
+- **Saving the last edit when the page closes:** Edits are normally saved when the user clicks Save. If a form still has unsaved changes when the page is closed (or refreshed), the app saves them automatically:
+  - The app listens for the browser's `pagehide` event. When it fires, every open form with unsaved changes **that passes validation** is sent with `fetch(..., { keepalive: true })`, which lets the request finish after the page is gone. The session is still valid at that moment, because logging out only happens on the next visit.
+  - **Covered:** an activity being added (POST) or edited (PATCH), and the Edit Trip form (PATCH), unless saving it would delete activities. That needs the user's confirmation, so it is never sent automatically.
+  - **Not covered:** the New Trip form (a half-filled new trip isn't created automatically), and forms that fail validation (e.g. an empty title). Those changes are lost.
+  - The `useUnsavedFormRegistry` hook tracks which forms have unsaved changes, so the `pagehide` handler knows what to send.
 - **Fallback / error boundary:** Each route has a React Router `errorElement` for unexpected crashes, with a "Reload" button.
 
 ## 13. Performance
@@ -247,7 +264,7 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 ## 14. Testing Strategy
 - **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, and the Zod schemas (especially the start-date, end-date, and 14-day rules).
 - **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day), the Edit Trip warning dialog, and `ProtectedRoute` redirects. API calls are mocked with MSW.
-- **End-to-end:** One Playwright test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px.
+- **End-to-end:** One Playwright test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px. A second test: refresh keeps the user logged in; closing the page with an unsaved activity, then reopening, asks for login and shows the activity saved.
 
 ## 15. Project Structure
 ```
@@ -284,7 +301,7 @@ frontend/                 # vercel.json lives at the repository root (see backen
 ## 16. Deployment
 The frontend and the FastAPI backend are deployed together as **one Vercel project**, at one address. The full setup, including `vercel.json`, is in [backend-spec.md §14](./backend-spec.md#14-deployment). For the frontend, that means:
 
-- **Build:** Vercel runs `cd frontend && npm ci && npm run build` and serves `frontend/dist`.
+- **Build:** Vercel first runs the database migrations (see the backend spec), then `cd frontend && npm ci && npm run build`, and serves `frontend/dist`.
 - **Automatic deploys:** Every push to `main` deploys to production. Every other branch and pull request gets its own preview URL.
 - **API calls:** `vercel.json` sends every `/api/*` request to the FastAPI function in the same project. The browser only ever talks to one address, so the session cookie is a same-site cookie, even on the free `*.vercel.app` address. No proxy to another host is needed.
 - **SPA fallback:** Every other address returns `index.html`, so refreshing or opening a link like `/trips/42` works, and React Router shows the right page. Real files such as JavaScript, CSS, and fonts are served first, because Vercel checks for a matching file before applying rewrites.

@@ -47,7 +47,6 @@ Every error response has this shape:
 | 409 | `USERNAME_TAKEN` | Signup with a username that already exists (in any letter case) | `{ "field": "username", "message": "This username is already taken." }` |
 | 409 | `ACTIVITIES_WOULD_BE_DELETED` | A trip update would remove days that have activities, and `confirmDeleteActivities` isn't `true` | `{ "activitiesToDelete": 3, "newDurationDays": 3 }` |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | A `POST`, `PATCH`, or `DELETE` without `Content-Type: application/json` | — |
-| 429 | `TOO_MANY_ATTEMPTS` | Too many failed logins for one username (section 7) | `{ "retryAfterSeconds": 840 }` |
 | 500 | `INTERNAL_ERROR` | An unexpected error on the server | — |
 | 503 | `SERVICE_UNAVAILABLE` | The database can't be reached | — |
 
@@ -156,7 +155,7 @@ Both the frontend (Zod) and the backend (Pydantic + services) enforce these rule
 
 **Note on "today":** The frontend checks against the user's local date. The server doesn't know the user's time zone, so it accepts any `startDate` ≥ (today in UTC − 1 day). This avoids rejecting valid trips for users ahead of or behind UTC.
 
-Other errors that aren't field validation: `USERNAME_TAKEN` (409), `INVALID_CREDENTIALS` (401), `ACTIVITIES_WOULD_BE_DELETED` (409), `TOO_MANY_ATTEMPTS` (429).
+Other errors that aren't field validation: `USERNAME_TAKEN` (409), `INVALID_CREDENTIALS` (401), `ACTIVITIES_WOULD_BE_DELETED` (409).
 
 ## 5. Endpoint Summary
 | Method | Path | Auth | Description | Story |
@@ -198,7 +197,7 @@ All paths are relative to `/api/v1`. There is no PDF endpoint: the PDF is built 
   "user": { "id": "3f6c2a9e-8d1b-4e2f-9a7c-5b0d1e2f3a4b", "username": "surabhi", "createdAt": "2026-10-04T14:30:00Z" }
 }
 ```
-Header: `Set-Cookie: session=<token>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800` (`Secure` is left out in local development.)
+Header: `Set-Cookie: session=<token>; HttpOnly; Secure; SameSite=Lax; Path=/` (no `Max-Age`, so the browser deletes it when it closes; `Secure` is left out in local development.)
 
 **Error responses**
 | Status | Code | Condition |
@@ -231,10 +230,9 @@ Header: `Set-Cookie: session=<token>; ...` (same as signup)
 |--------|------|-----------|
 | 400 | `VALIDATION_ERROR` | Username or password is empty |
 | 401 | `INVALID_CREDENTIALS` | Wrong username or password |
-| 429 | `TOO_MANY_ATTEMPTS` | 10 failed logins for this username in the last 15 minutes |
 
 ### 6.3 `POST /auth/logout`
-- **Description:** Ends the session and clears the cookie. Succeeds even if there is no session, so the frontend can always call it.
+- **Description:** Ends the session and clears the cookie. Succeeds even if there is no session, so the frontend can always call it. The frontend also calls it when the app opens in a tab that hasn't logged in yet (the "logged out when the page closes" rule, [frontend-spec.md §8](./frontend-spec.md#8-authentication-client-side)).
 - **Auth required:** No
 - **Request body:** None (still send `Content-Type: application/json`)
 
@@ -446,9 +444,12 @@ The updated `Activity`.
 | 503 | `SERVICE_UNAVAILABLE` | The database can't be reached |
 
 ## 7. Sessions & Rate Limits
-- **Session lifetime:** 7 days. While the user stays active, the session is renewed: when a request arrives and less than 6 days remain, the server extends the session to 7 days from now **and re-sends the `Set-Cookie` header** with a fresh `Max-Age`, so the browser keeps the cookie too. This happens at most once a day.
-- **Login rate limit:** After 10 failed logins for the same username within 15 minutes, `POST /auth/login` for that username returns 429 `TOO_MANY_ATTEMPTS` until the oldest failure is more than 15 minutes old. The response includes a `Retry-After` header (seconds) and `retryAfterSeconds` in `details`.
-- **Other endpoints:** No limits in the MVP beyond Vercel's built-in protection.
+- **Session lifetime:** A session ends when any of these happens:
+  - **The page is closed.** The next time the app opens in a tab, the frontend calls `POST /auth/logout` and shows the login page. Refreshing the page does not log out (see [frontend-spec.md §8](./frontend-spec.md#8-authentication-client-side)).
+  - **The browser closes.** The cookie has no expiry date, so the browser deletes it.
+  - **12 hours without any request** (idle timeout on the server). While the user is active, the server keeps pushing this back, at most once an hour. There is no new `Set-Cookie` when this happens, because the cookie itself has no expiry.
+  - **The user clicks Log out.**
+- **Rate limits:** None in the MVP, including on login, beyond Vercel's built-in protection. Limiting repeated failed logins is future work (see [goal-spec.md](./goal-spec.md#8-future-enhancements-post-mvp)); when added, it will use a new `429` error code, which doesn't need a new API version.
 
 ## 8. Open Questions
 - None right now.

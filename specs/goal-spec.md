@@ -56,6 +56,8 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
     - [ ] Wrong credentials show one generic "invalid username or password" error
     - [ ] A logged-out user who opens any trip page is sent to the login page
     - [ ] After logout, the user cannot reach their trips without logging in again
+    - [ ] Closing the page (tab or browser) logs the user out; the next visit asks them to log in. Refreshing the page keeps them logged in
+    - [ ] Any edit not yet saved when the page closes is saved automatically, as long as it is valid
 
 - **US3:** As a traveler, I want to create a trip with a destination, dates, and trip type so that I can start planning it.
   - Acceptance criteria:
@@ -100,6 +102,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 
 ## 8. Future Enhancements (Post-MVP)
 - Email-based signup, email verification, and password reset
+- Limiting repeated failed logins (e.g. slowing down or blocking password guessing)
 - Recording past trips (trips with a start date before today)
 - Multiple destinations in one trip
 - Sharing a trip, or planning it together with other travelers
@@ -128,7 +131,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Frontend: React + TypeScript single-page app, built with Vite and styled with Tailwind CSS. Data from the API is loaded and cached with TanStack Query; forms use React Hook Form + Zod. Font: Fira Sans. Details in [frontend-spec.md](./frontend-spec.md#2-tech-stack).
 - Backend: Python + FastAPI REST JSON API, with Pydantic validation, SQLAlchemy, and Alembic migrations. Users stay logged in with an `httpOnly` session cookie backed by a `sessions` table. Details in [backend-spec.md](./backend-spec.md#2-tech-stack).
 - Database: PostgreSQL, hosted on **Neon**. It stores users, login sessions, trips, and activities.
-- Hosting / Deployment: **Vercel**, one project for both: the React frontend as static files and the FastAPI backend as Vercel Functions, at the same address, deployed automatically on every push to GitHub. Preview deployments get their own Neon database branch. Development runs entirely on your own computer. Details in [backend-spec.md](./backend-spec.md#14-deployment).
+- Hosting / Deployment: **Vercel**, one project for both: the React frontend as static files and the FastAPI backend as Vercel Functions, at the same address, deployed automatically on every push to GitHub. Database migrations run automatically during each Vercel build. Preview deployments get their own Neon database branch. Development runs entirely on your own computer. Details in [backend-spec.md](./backend-spec.md#14-deployment).
 - Third-party services (maps, weather, auth, etc.): None in the MVP besides the hosts above (Vercel, Neon). PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
 
 ## 12. Open Questions
