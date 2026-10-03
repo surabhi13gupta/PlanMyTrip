@@ -244,6 +244,7 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 frontend/
   index.html
   vite.config.ts          # dev proxy: /api → backend (keeps cookies same-site)
+  vercel.json             # production rewrites: /api → backend, everything else → index.html
   .env.example            # VITE_API_BASE_URL=/api/v1
   src/
     main.tsx              # React root, QueryClientProvider, Toaster
@@ -270,7 +271,32 @@ frontend/
   e2e/                    # Playwright tests
 ```
 
-## 16. Open Questions
+## 16. Deployment
+The frontend is hosted on **Vercel**.
+
+- **Vercel project settings:**
+  - Root directory: `frontend`
+  - Framework preset: Vite
+  - Build command: `npm run build`
+  - Output directory: `dist`
+- **Automatic deploys:** Every push to `main` deploys to production. Every other branch and pull request gets its own preview URL.
+- **`vercel.json` rewrites:**
+  ```json
+  {
+    "rewrites": [
+      { "source": "/api/:path*", "destination": "https://<backend-host>/api/:path*" },
+      { "source": "/(.*)", "destination": "/index.html" }
+    ]
+  }
+  ```
+  - The first rule sends API calls on to the backend. The browser only ever talks to the Vercel address, so the session cookie is a same-site cookie, even on the free `*.vercel.app` address and without a custom domain.
+  - The second rule is the SPA fallback. Refreshing or opening a link like `/trips/42` returns `index.html`, and React Router shows the right page. Real files such as JavaScript, CSS, and fonts are served first, because Vercel checks for a matching file before applying rewrites.
+  - `<backend-host>` is filled in once the backend host is chosen (see [backend-spec.md](./backend-spec.md)).
+- **Environment variables:** `VITE_API_BASE_URL=/api/v1` in every environment. It is the same everywhere, because the proxy handles where the backend lives.
+- **HTTPS:** Vercel serves every address over HTTPS, which the `Secure` session cookie requires.
+- **Preview deployments:** Preview URLs proxy to the same backend as production, unless the backend has a separate staging environment. For the MVP, previews are only for checking how pages look; don't create test data with them.
+
+## 17. Open Questions
 - None right now.
 
 ### Resolved
