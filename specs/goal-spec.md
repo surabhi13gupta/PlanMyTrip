@@ -47,6 +47,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - **US1:** As a new traveler, I want to sign up with a username and password so that my trips are saved to my own account.
   - Acceptance criteria:
     - [ ] Signup requires a unique username and a password of at least 8 characters
+    - [ ] Usernames are case-insensitive ("Surabhi" and "surabhi" are the same account)
     - [ ] If the username is already taken, a clear error is shown
     - [ ] After a successful signup, the user is logged in and taken to My Trips
 
@@ -59,6 +60,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - **US3:** As a traveler, I want to create a trip with a destination, dates, and trip type so that I can start planning it.
   - Acceptance criteria:
     - [ ] Name, destination, start date, end date, and Trip Type are all required
+    - [ ] The start date cannot be earlier than today
     - [ ] The end date cannot be earlier than the start date
     - [ ] A trip can be at most 14 days long
     - [ ] Trip Type is one of: Solo, Couple, Family, Friends
@@ -90,10 +92,13 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
   - Acceptance criteria:
     - [ ] The user can change a trip's name, destination, dates, and Trip Type
     - [ ] Deleting a trip asks for confirmation and also deletes its activities
+    - [ ] Activities belong to a day number, so if the dates move, the plan moves with them (Day 2's activities stay on Day 2)
+    - [ ] If the start date is changed, it cannot be earlier than today; a trip that has already started can still be edited if its start date is left alone
     - [ ] If shortening the dates would remove days that have activities, the user sees how many activities will be deleted and must confirm. If they confirm, those activities are deleted. If they cancel, nothing changes.
 
 ## 8. Future Enhancements (Post-MVP)
 - Email-based signup, email verification, and password reset
+- Recording past trips (trips with a start date before today)
 - Multiple destinations in one trip
 - Sharing a trip, or planning it together with other travelers
 - Activity suggestions based on Trip Type or destination
@@ -149,7 +154,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | Trip Type | A label for who the user is traveling with: Solo, Couple, Family, or Friends. It is a label only and does not change how the app behaves in the MVP. |
 | Trip Duration | The number of days in a trip, counting both the start and end dates (e.g. Oct 10 to Oct 12 is 3 days). The maximum is 14 days. |
 | Day (Day N) | One calendar date within a trip. Day 1 is the start date and the last day is the end date. Days are worked out from the trip's dates, not created by the user. |
-| Activity | One planned item on a specific day of a trip, such as "Visit the Louvre". It has a title, and optionally a time and notes. |
+| Activity | One planned item on a specific day of a trip, such as "Visit the Louvre". It has a title, and optionally a time and notes. It belongs to a day number (e.g. Day 2), not to a calendar date, so it moves with the trip if the dates change. |
 | Day-by-Day Plan | The screen for a trip where the user adds and edits activities for each day. |
 | Itinerary | The full, ordered view of a trip: its details plus every day and that day's activities. This is what gets exported. |
 | PDF Export | Downloading the itinerary as a PDF file, generated in the browser, that can be printed or kept on a phone. |
