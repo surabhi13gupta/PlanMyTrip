@@ -60,6 +60,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
   - Acceptance criteria:
     - [ ] Name, destination, start date, end date, and Trip Type are all required
     - [ ] The end date cannot be earlier than the start date
+    - [ ] A trip can be at most 14 days long
     - [ ] Trip Type is one of: Solo, Couple, Family, Friends
     - [ ] After the trip is created, the user lands on its day-by-day plan
 
@@ -83,12 +84,13 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
     - [ ] The PDF includes the trip name, destination, dates, and Trip Type, plus every day with its activities
     - [ ] Days with no activities still appear, marked "No activities planned"
     - [ ] The file name includes the trip name (e.g. `Paris-Getaway-itinerary.pdf`)
+    - [ ] The PDF is generated in the browser; no server call is needed for the export
 
 - **US7:** As a traveler, I want to edit or delete a trip so that my plans stay accurate.
   - Acceptance criteria:
     - [ ] The user can change a trip's name, destination, dates, and Trip Type
     - [ ] Deleting a trip asks for confirmation and also deletes its activities
-    - [ ] If shortening the dates would remove days that have activities, the user is warned before saving (see Open Questions)
+    - [ ] If shortening the dates would remove days that have activities, the user sees how many activities will be deleted and must confirm. If they confirm, those activities are deleted. If they cancel, nothing changes.
 
 ## 8. Future Enhancements (Post-MVP)
 - Email-based signup, email verification, and password reset
@@ -112,7 +114,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Team size: 1 person
 - Target platform: Web only, built responsively so it also works on mobile browsers (no native mobile app)
 - Assumption: Each trip has exactly one destination
-- Assumption: A trip lasts at most 30 days (keeps the plan and the PDF manageable)
+- Constraint: A trip lasts at most 14 days (keeps the plan screen and the PDF manageable)
 - Assumption: Dates are calendar dates with no time zone; activity times are local times at the destination
 
 ## 11. Tech Stack (High Level)
@@ -128,9 +130,14 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | M1 | | |
 
 ## 13. Open Questions
-- When a trip's dates are shortened, should the activities on removed days be deleted (after a warning), or should saving be blocked?
-- Is the PDF built in the browser or on the server? (To decide in the frontend and backend specs.)
-- Is 30 days the right maximum trip length?
+- None right now.
+
+### Resolved
+| Question | Decision |
+|----------|----------|
+| What happens to activities on days removed when a trip's dates are shortened? | Warn the user with how many activities will be deleted; if they confirm, delete them (US7) |
+| What is the maximum trip length? | 14 days (US3) |
+| Is the PDF generated in the browser or on the server? | In the browser; the backend has no export endpoint (US6) |
 
 ## 14. Glossary
 | Term | Definition |
@@ -140,10 +147,10 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | Trip | A planned journey to one destination, with a name, a start date, an end date, and a Trip Type. A trip belongs to the user who created it. |
 | Destination | The place a trip is to, entered as free text (e.g. "Paris, France"). There is one destination per trip in the MVP. |
 | Trip Type | A label for who the user is traveling with: Solo, Couple, Family, or Friends. It is a label only and does not change how the app behaves in the MVP. |
-| Trip Duration | The number of days in a trip, counting both the start and end dates (e.g. Oct 10 to Oct 12 is 3 days). |
+| Trip Duration | The number of days in a trip, counting both the start and end dates (e.g. Oct 10 to Oct 12 is 3 days). The maximum is 14 days. |
 | Day (Day N) | One calendar date within a trip. Day 1 is the start date and the last day is the end date. Days are worked out from the trip's dates, not created by the user. |
 | Activity | One planned item on a specific day of a trip, such as "Visit the Louvre". It has a title, and optionally a time and notes. |
 | Day-by-Day Plan | The screen for a trip where the user adds and edits activities for each day. |
 | Itinerary | The full, ordered view of a trip: its details plus every day and that day's activities. This is what gets exported. |
-| PDF Export | Downloading the itinerary as a PDF file that can be printed or kept on a phone. |
+| PDF Export | Downloading the itinerary as a PDF file, generated in the browser, that can be printed or kept on a phone. |
 | My Trips | The screen that lists all of the logged-in user's trips. |
