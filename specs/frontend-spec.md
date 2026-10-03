@@ -5,7 +5,7 @@
 
 ## 1. Overview
 <!-- Purpose of the frontend and how it serves the goals. -->
-The frontend is a responsive single-page app (SPA) that runs in the browser. It lets a user sign up, create trips, plan activities for each day, and export the itinerary as a PDF (goals G1–G4). It talks to the backend only through the REST API in [api-contract-spec.md](./api-contract-spec.md). The PDF is generated entirely in the browser, so exporting needs no server call.
+The frontend is a responsive single-page app (SPA) that runs in the browser. It lets a user sign up, create trips, plan activities for each day, and print the itinerary as a PDF (goals G1–G4). Page layouts follow the hand-drawn mockups: [first screen and new trip screen](./mockups/first-and-new-trip-screens.jpg), and [saved trip](./mockups/saved-trip-screen.jpg). The mockups set the layout only; colors and type come from section 10, and the app is called PlanMyTrip (not the "Musafir Travels" written on the sketch). It talks to the backend only through the REST API in [api-contract-spec.md](./api-contract-spec.md). The PDF is generated entirely in the browser, so exporting needs no server call.
 
 Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glossary in [goal-spec.md](./goal-spec.md#13-glossary).
 
@@ -30,10 +30,10 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `/` | — | — | Redirects to `/trips` if logged in, otherwise to `/login` | — |
 | `/signup` | Signup | No | Create an account | US1 |
 | `/login` | Login | No | Log in | US2 |
-| `/trips` | My Trips | Yes | List of the user's trips | US4 |
-| `/trips/new` | Create Trip | Yes | Form to create a trip | US3 |
-| `/trips/:tripId` | Day-by-Day Plan | Yes | A trip's days and activities, plus Export PDF | US5, US6 |
-| `/trips/:tripId/edit` | Edit Trip | Yes | Change or delete the trip | US7 |
+| `/trips` | My Trips (home) | Yes | Welcome, "Add new trip", and the user's trip plans | US4 |
+| `/trips/new` | New Trip | Yes | "Plan a new trip" form | US3 |
+| `/trips/:tripId` | Trip Page | Yes | A trip's days and activities, plus Print, Delete, and Edit | US5, US6, US7 |
+| `/trips/:tripId/edit` | Edit Trip | Yes | Change the trip's dates, destination, or Trip Type | US7 |
 | `*` | Not Found | No | 404 page with a link back to My Trips | — |
 
 **Route rules**
@@ -61,38 +61,44 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **User interactions:** Fill in username and password, then submit. On success, go to the `redirect` path, or to `/trips` if there is none.
 - **Loading / empty / error states:** Submit spinner as on Signup. Wrong credentials (401) show one message above the form: "Invalid username or password."
 
-### 4.3 My Trips
+### 4.3 My Trips (home)
 - **Route:** `/trips`
-- **Purpose:** See all trips and open one (US4).
-- **Layout / sections:** The header, a page title with a "Create trip" button, and a list of trip cards: one column on mobile, two to three columns on wider screens.
+- **Purpose:** The first screen after logging in: see all trips and open one, or start a new one (US4).
+- **Layout / sections** (follows the "First screen" sketch):
+  1. A welcome heading: "Welcome to PlanMyTrip"
+  2. An **"Add new trip"** button (main button)
+  3. A **"Your trip plans"** section listing trip cards. Each card shows the **destination** as its title, the **dates** below it ("Oct 10 – Oct 14, 2026 · 5 days"), and a Trip Type badge. One column on mobile, two to three columns on wider screens.
 - **Components used:** `AppLayout`, `TripCard`, `EmptyState`
 - **Data needed (API calls):** `GET /trips`
-- **User interactions:** Click a card to open its plan. Click "Create trip" to go to `/trips/new`.
+- **User interactions:** Click a card to open the trip. Click "Add new trip" to go to `/trips/new`.
 - **Sort order:** Upcoming and current trips first, by start date (soonest first), then past trips (most recent first).
-- **Loading / empty / error states:** Skeleton cards while loading. With no trips, show "No trips yet" and a "Create trip" button. On an error, show a message with a Retry button.
+- **Loading / empty / error states:** Skeleton cards while loading. With no trips, the "Your trip plans" section shows "No trips yet. Add your first trip to start planning." On an error, show a message with a Retry button.
 
-### 4.4 Create Trip
+### 4.4 New Trip
 - **Route:** `/trips/new`
 - **Purpose:** Create a trip (US3).
-- **Layout / sections:** A page title, then `TripForm`. The form is one column, at most about 640px wide.
+- **Layout / sections** (follows the "New trip screen" sketch): The title **"Plan a new trip"**, then `TripForm` with fields in this order: **From** (start date), **To** (end date), **Destination**, **Trip Type**. The submit button is labelled **"Plan"**. The form is one column, at most about 640px wide.
 - **Components used:** `AppLayout`, `TripForm`
 - **Data needed (API calls):** `POST /trips`
-- **User interactions:** Fill in name, destination, start date, end date, and Trip Type (four buttons: Solo, Couple, Family, Friends). The date pickers don't offer dates before today. The form shows the trip length as you pick dates, e.g. "5 days". On success, go to `/trips/:tripId`. "Cancel" goes back to `/trips`.
+- **User interactions:** Pick the dates, type the destination, and choose a Trip Type (four buttons: Solo, Couple, Family, Friends). The date pickers don't offer dates before today. The form shows the trip length as you pick dates, e.g. "5 days". Clicking "Plan" creates the trip and opens its page, showing Day 1 through Day N ready for activities. "Cancel" goes back to `/trips`.
 - **Loading / empty / error states:** Submit spinner. Validation errors appear under each field (see section 9). Server errors appear above the form.
 
-### 4.5 Day-by-Day Plan
+### 4.5 Trip Page (Day-by-Day Plan)
 - **Route:** `/trips/:tripId`
-- **Purpose:** Plan activities for each day (US5) and export the itinerary (US6).
-- **Layout / sections:**
-  - A trip header with the name, destination, dates, Trip Type badge, and the buttons "Edit trip" and "Export PDF".
-  - A strip of day chips ("Day 1 · Oct 10", …) that scrolls sideways on mobile. Clicking a chip scrolls to that day.
-  - A `DayCard` for each day, from Day 1 to Day N, stacked vertically. Each card lists its activities and has an "+ Add activity" button.
-- **Components used:** `AppLayout`, `TripHeader`, `DayNav`, `DayCard`, `ActivityItem`, `ActivityForm`, `ConfirmDialog`, `ExportPdfButton`
-- **Data needed (API calls):** `GET /trips/:tripId` (the trip with its activities), `POST /trips/:tripId/activities`, `PATCH /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId/activities/:activityId`
+- **Purpose:** Plan activities for each day (US5), print the itinerary (US6), and edit or delete the trip (US7). This one page covers both the "Day 1 … Day N" and the "Saved trip" sketches.
+- **Layout / sections** (follows the "Saved trip" sketch):
+  1. **Trip header:** the destination as the page title, "From Oct 10 → To Oct 14, 2026 · 5 days" below it, the Trip Type badge, and a small **"Edit"** link that opens `/trips/:tripId/edit`.
+  2. **Day chips:** a strip of chips ("Day 1 · Oct 10", …) that scrolls sideways on mobile. Clicking a chip scrolls to that day.
+  3. **Days:** a `DayCard` for each day, from Day 1 to Day N, stacked vertically. Each card lists its activities and has an "+ Add activity" button.
+  4. **Action bar** at the bottom: **"Print"** (main button) and **"Delete"** (danger button). On mobile, the bar sticks to the bottom of the screen, so both are always reachable even on a 14-day trip.
+- **Components used:** `AppLayout`, `TripHeader`, `DayNav`, `DayCard`, `ActivityItem`, `ActivityForm`, `TripActions`, `ConfirmDialog`, `PrintButton`
+- **Data needed (API calls):** `GET /trips/:tripId` (the trip with its activities), `POST /trips/:tripId/activities`, `PATCH /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId`
 - **User interactions:**
   - **Add:** "+ Add activity" opens an `ActivityForm` inside that day's card (title, optional time, optional notes). Save or Cancel.
-  - **Edit:** Clicking an activity's edit icon replaces it with an `ActivityForm` that is already filled in.
-  - **Delete:** The delete icon opens a `ConfirmDialog` ("Delete 'Visit the Louvre'?").
+  - **Edit an activity:** Clicking an activity's edit icon replaces it with an `ActivityForm` that is already filled in.
+  - **Delete an activity:** The delete icon opens a `ConfirmDialog` ("Delete 'Visit the Louvre'?").
+  - **Print:** Builds the itinerary PDF in the browser and downloads it (section 7, flow 3). It does not open the browser's print window.
+  - **Delete the trip:** Opens a `ConfirmDialog`: "Delete your trip to Paris, France (Oct 10 – Oct 14)? All its activities will be deleted too. This can't be undone." On success, go to `/trips` with a toast.
   - **Sort:** Within a day, activities with a time appear first, in time order. Activities without a time follow, in the order they were created (the `sortActivities` helper).
   - **Days:** The list of days is worked out from the trip's start and end dates (the `getTripDays` helper). The user never creates or deletes days.
   - **Day numbers:** Each activity belongs to a day number (Day 1, Day 2, …), not to a calendar date. If the trip's dates move, the activities move with them; e.g. Day 2's activities follow Day 2 to its new date.
@@ -100,14 +106,14 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 
 ### 4.6 Edit Trip
 - **Route:** `/trips/:tripId/edit`
-- **Purpose:** Change or delete a trip (US7).
-- **Layout / sections:** The same `TripForm`, filled in with the trip's details, and below it a "Danger zone" section with a "Delete trip" button.
+- **Purpose:** Change a trip's dates, destination, or Trip Type (US7).
+- **Layout / sections:** The title "Edit trip", then the same `TripForm` as New Trip, filled in with the trip's details. The submit button is labelled "Save". (Deleting a trip is on the Trip Page, not here.)
 - **Components used:** `AppLayout`, `TripForm`, `ConfirmDialog`
-- **Data needed (API calls):** `GET /trips/:tripId`, `PATCH /trips/:tripId`, `DELETE /trips/:tripId`
+- **Data needed (API calls):** `GET /trips/:tripId`, `PATCH /trips/:tripId`
 - **User interactions:**
-  - **Save:** Before sending, the frontend counts the activities whose day number is greater than the new trip length (the `countActivitiesBeyondDay` helper). For example, going from 5 days to 3 removes Days 4 and 5. Moving the dates without changing the length removes nothing. If there are any, a `ConfirmDialog` shows: "Your new dates remove days that have 3 activities. They will be deleted." with "Delete and save" or "Cancel". Cancel changes nothing. If confirmed, or if no activities are affected, the trip is saved (PATCH) and the user goes to `/trips/:tripId`. When the user confirmed, the PATCH includes `"confirmDeleteActivities": true`; the backend refuses to delete activities without it. If the backend still answers 409 `ACTIVITIES_WOULD_BE_DELETED` (for example, activities were added in another tab), the dialog is shown again with the count from the server.
-  - **Delete trip:** A `ConfirmDialog` shows: "Delete 'Paris Getaway' and all its activities? This can't be undone." On success, go to `/trips` with a toast.
-- **Loading / empty / error states:** Same as Create Trip. If the trip isn't found, show the Not Found page.
+  - **Save:** Before sending, the frontend counts the activities whose day number is greater than the new trip length (the `countActivitiesBeyondDay` helper). For example, going from 5 days to 3 removes Days 4 and 5. Moving the dates without changing the length removes nothing. If there are any, a `ConfirmDialog` shows: "Your new dates remove days that have 3 activities. They will be deleted." with "Delete and save" or "Cancel". Cancel changes nothing. If confirmed, or if no activities are affected, the trip is saved (PATCH) and the user goes back to `/trips/:tripId`. When the user confirmed, the PATCH includes `"confirmDeleteActivities": true`; the backend refuses to delete activities without it. If the backend still answers 409 `ACTIVITIES_WOULD_BE_DELETED` (for example, activities were added in another tab), the dialog is shown again with the count from the server.
+  - **Cancel:** goes back to `/trips/:tripId` without saving.
+- **Loading / empty / error states:** Same as New Trip. If the trip isn't found, show the Not Found page.
 
 ### 4.7 Not Found
 - **Route:** `*`
@@ -122,17 +128,18 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `ProtectedRoute` | Redirects to `/login` if the user isn't logged in | `children` | Router |
 | `PublicOnlyRoute` | Redirects to `/trips` if the user is logged in | `children` | Router |
 | `SignupForm` / `LoginForm` | Auth forms with validation and error display | `onSuccess` | Signup, Login |
-| `TripForm` | Create/edit trip form; shows live trip length | `defaultValues?`, `onSubmit`, `submitLabel`, `isSubmitting` | Create Trip, Edit Trip |
+| `TripForm` | New/edit trip form (From, To, Destination, Trip Type); shows live trip length | `defaultValues?`, `onSubmit`, `submitLabel`, `isSubmitting` | New Trip, Edit Trip |
 | `TripTypePicker` | Four-option selector for Trip Type | `value`, `onChange` | `TripForm` |
-| `TripCard` | One trip in the list | `trip` | My Trips |
-| `TripHeader` | Trip details plus Edit / Export buttons | `trip` | Day-by-Day Plan |
-| `DayNav` | Horizontal day chips that scroll to a day | `days` | Day-by-Day Plan |
-| `DayCard` | One day: heading, sorted activities, add button | `day`, `activities`, `tripId` | Day-by-Day Plan |
+| `TripCard` | One trip in the list: destination, dates, Trip Type | `trip` | My Trips |
+| `TripHeader` | Destination, dates, Trip Type badge, and Edit link | `trip` | Trip Page |
+| `DayNav` | Horizontal day chips that scroll to a day | `days` | Trip Page |
+| `DayCard` | One day: heading, sorted activities, add button | `day`, `activities`, `tripId` | Trip Page |
 | `ActivityItem` | Shows one activity with edit/delete icons | `activity`, `onEdit`, `onDelete` | `DayCard` |
 | `ActivityForm` | Inline add/edit form for an activity | `defaultValues?`, `onSubmit`, `onCancel` | `DayCard` |
-| `ConfirmDialog` | Accessible confirmation dialog (native `<dialog>`) | `open`, `title`, `message`, `confirmLabel`, `onConfirm`, `onCancel`, `destructive?` | Plan, Edit Trip |
-| `ExportPdfButton` | Lazy-loads the PDF library, builds the PDF, downloads it | `trip`, `activities` | `TripHeader` |
-| `ItineraryPdf` | The PDF layout (react-pdf document) | `trip`, `days`, `activities` | `ExportPdfButton` |
+| `TripActions` | Bottom action bar with Print and Delete (sticky on mobile) | `trip`, `activities`, `onDelete` | Trip Page |
+| `ConfirmDialog` | Accessible confirmation dialog (native `<dialog>`) | `open`, `title`, `message`, `confirmLabel`, `onConfirm`, `onCancel`, `destructive?` | Trip Page, Edit Trip |
+| `PrintButton` | "Print": lazy-loads the PDF library, builds the PDF, downloads it | `trip`, `activities` | `TripActions` |
+| `ItineraryPdf` | The PDF layout (react-pdf document) | `trip`, `days`, `activities` | `PrintButton` |
 | `EmptyState` | Message + optional action button | `title`, `message`, `action?` | My Trips |
 | `Skeleton` / `Spinner` | Loading placeholders | — | Many |
 | `ErrorState` | Error message with Retry | `message`, `onRetry` | Many |
@@ -149,18 +156,18 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ## 7. User Flows
 1. **First-time user**
    1. Opens `/` → redirected to `/login` → clicks "Create an account"
-   2. Signs up → lands on My Trips and sees the empty state
-   3. Clicks "Create trip" → fills in the form → lands on the new trip's Day-by-Day Plan
+   2. Signs up → lands on My Trips ("Welcome to PlanMyTrip") and sees the empty state
+   3. Clicks "Add new trip" → picks From and To dates, enters the destination and Trip Type → clicks "Plan" → lands on the new trip's page with Day 1 … Day N
 2. **Planning a day**
-   1. On the Day-by-Day Plan, taps "Day 2" in the day chips → page scrolls to Day 2
+   1. On the Trip Page, taps "Day 2" in the day chips → page scrolls to Day 2
    2. Clicks "+ Add activity" → enters a title, time, and notes → Save
    3. The activity appears in Day 2 in the right order
-3. **Exporting**
-   1. On the Day-by-Day Plan, clicks "Export PDF"
+3. **Printing**
+   1. On the Trip Page, clicks "Print"
    2. The button shows a spinner while the PDF library loads and the PDF is built
-   3. The browser downloads `<Trip-Name>-itinerary.pdf`
+   3. The browser downloads `<Destination>-<start date>-itinerary.pdf`, e.g. `Paris-France-2026-10-10-itinerary.pdf`
 4. **Shortening a trip**
-   1. Clicks "Edit trip" → moves the end date two days earlier → Save
+   1. Clicks "Edit" → moves the end date two days earlier → Save
    2. Sees the warning with how many activities will be deleted
    3. Confirms → returns to the plan, which now has fewer days. (Or cancels → nothing changes.)
 5. **Session expired**
@@ -181,7 +188,7 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 |------|--------|------------------|
 | Signup | username, password, confirmPassword | username: required, 3–30 characters, only letters, numbers, and `_`; case-insensitive ("Surabhi" and "surabhi" are the same account; the backend stores it in lowercase). password: required, 8–72 characters. confirmPassword: must match password |
 | Login | username, password | Both required (no other rules, so the form gives no hints about valid usernames) |
-| Trip (create/edit) | name, destination, startDate, endDate, tripType | name: required, 1–100 characters, trimmed. destination: required, 1–100 characters, trimmed. startDate, endDate: required, valid dates. startDate ≥ today (the user's local date) when creating; when editing, only if the start date was changed, so a trip that has already started can still be edited. endDate ≥ startDate. Trip length (both dates counted) ≤ 14 days. tripType: one of `solo`, `couple`, `family`, `friends` |
+| Trip (create/edit) | startDate (From), endDate (To), destination, tripType | destination: required, 1–100 characters, trimmed. startDate, endDate: required, valid dates. startDate ≥ today (the user's local date) when creating; when editing, only if the start date was changed, so a trip that has already started can still be edited. endDate ≥ startDate. Trip length (both dates counted) ≤ 14 days. tripType: one of `solo`, `couple`, `family`, `friends` |
 | Activity | title, time, notes | title: required, 1–100 characters, trimmed. time: optional, `HH:mm` (24-hour). notes: optional, ≤ 500 characters |
 
 - Errors appear under the field once the user leaves it, and on every field when they submit.
@@ -232,14 +239,14 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 - **Fallback / error boundary:** Each route has a React Router `errorElement` for unexpected crashes, with a "Reload" button.
 
 ## 13. Performance
-- **Code splitting / lazy loading:** `@react-pdf/renderer` is loaded with `import()` only when the user clicks Export, keeping it out of the initial bundle. Pages are lazy-loaded per route.
+- **Code splitting / lazy loading:** `@react-pdf/renderer` is loaded with `import()` only when the user clicks Print, keeping it out of the initial bundle. Pages are lazy-loaded per route.
 - **Image optimization:** No images in the MVP. Icons are inline SVG.
 - **Targets:** Initial JavaScript ≤ 200 KB gzipped (not counting the PDF library). LCP < 2.5s on simulated 4G.
 
 ## 14. Testing Strategy
 - **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, and the Zod schemas (especially the start-date, end-date, and 14-day rules).
 - **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day), the Edit Trip warning dialog, and `ProtectedRoute` redirects. API calls are mocked with MSW.
-- **End-to-end:** One Playwright test for the whole flow (sign up → create trip → add activities → export PDF and check that a file downloads), run at desktop size and at 375px.
+- **End-to-end:** One Playwright test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px.
 
 ## 15. Project Structure
 ```
