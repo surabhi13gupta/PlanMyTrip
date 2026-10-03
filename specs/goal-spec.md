@@ -129,12 +129,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Hosting / Deployment: The frontend is hosted on **Vercel**, deployed automatically from GitHub, with a proxy rule that sends `/api/*` to the backend so the session cookie stays same-site. Details in [frontend-spec.md](./frontend-spec.md#16-deployment). The backend host is to be decided in [backend-spec.md](./backend-spec.md).
 - Third-party services (maps, weather, auth, etc.): None in the MVP. PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
 
-## 12. Milestones
-| Milestone | Scope | Target Date |
-|-----------|-------|-------------|
-| M1 | | |
-
-## 13. Open Questions
+## 12. Open Questions
 - None right now.
 
 ### Resolved
@@ -144,7 +139,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | What is the maximum trip length? | 14 days (US3) |
 | Is the PDF generated in the browser or on the server? | In the browser; the backend has no export endpoint (US6) |
 
-## 14. Glossary
+## 13. Glossary
 | Term | Definition |
 |------|------------|
 | User / Traveler | A person with an account who plans trips. In the MVP, every trip belongs to exactly one user. |

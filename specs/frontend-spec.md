@@ -7,7 +7,7 @@
 <!-- Purpose of the frontend and how it serves the goals. -->
 The frontend is a responsive single-page app (SPA) that runs in the browser. It lets a user sign up, create trips, plan activities for each day, and export the itinerary as a PDF (goals G1–G4). It talks to the backend only through the REST API in [api-contract-spec.md](./api-contract-spec.md). The PDF is generated entirely in the browser, so exporting needs no server call.
 
-Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glossary in [goal-spec.md](./goal-spec.md#14-glossary).
+Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glossary in [goal-spec.md](./goal-spec.md#13-glossary).
 
 ## 2. Tech Stack
 - Framework: React 19
