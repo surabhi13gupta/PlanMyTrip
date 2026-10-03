@@ -229,7 +229,8 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 ## 12. Error Handling & Notifications
 - **API error display:** The API client turns non-2xx responses into an `ApiError` with `status`, `code`, `message`, and `details` (the error format in [api-contract-spec.md](./api-contract-spec.md#2-standard-error-response)).
   - 400: field errors on the form
-  - 401: the session-expired flow (section 7, flow 5)
+  - 401 `UNAUTHORIZED`: the session-expired flow (section 7, flow 5), except for `GET /auth/me` at startup, where it just means "logged out"
+  - 401 `INVALID_CREDENTIALS`: the login form's "Invalid username or password." message
   - 404: Not Found page
   - 409: shown on the related field (e.g. username taken), or the shortening warning on Edit Trip (`ACTIVITIES_WOULD_BE_DELETED`)
   - 429 on login: message above the form: "Too many failed attempts. Please try again in 15 minutes."
@@ -259,7 +260,8 @@ frontend/                 # vercel.json lives at the repository root (see backen
     styles.css            # Tailwind import, @theme color tokens, Fira Sans
     router.tsx            # routes + ProtectedRoute / PublicOnlyRoute
     api/
-      client.ts           # fetch wrapper, ApiError, credentials: 'include'
+      client.ts           # fetch wrapper, ApiError, credentials: 'include',
+                          # Content-Type: application/json on every POST/PATCH/DELETE
       auth.ts             # signup, login, logout, me
       trips.ts            # trips + activities calls
     hooks/                # useAuth, useTrips, useTrip, useActivityMutations
@@ -297,6 +299,6 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 | Question | Decision |
 |----------|----------|
 | Are activities tied to a calendar date or a day number? | **Day number.** Moving a trip's dates moves its plan with it; shortening a trip removes the last days (after the warning) |
-| Session cookie or Bearer token? | **`httpOnly` session cookie** (section 8). The API contract will use a cookie instead of an `Authorization` header |
+| Session cookie or Bearer token? | **`httpOnly` session cookie** (section 8). The API contract uses the `session` cookie, with no `Authorization` header |
 | Can a trip start in the past? | **No, not in the MVP.** The start date must be today or later; recording past trips is future work (see goal spec) |
 | Are usernames case-insensitive? | **Yes.** Stored and compared in lowercase |

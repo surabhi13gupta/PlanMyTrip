@@ -125,7 +125,7 @@ Only failed logins are recorded. Rows older than 1 day are deleted whenever a ne
 | Service | Responsibilities | Key Rules |
 |---------|------------------|-----------|
 | `auth_service` | Sign up, log in, log out, look up the current user | Usernames lowercased before saving and comparing. Signup with a taken username → 409 `USERNAME_TAKEN`. Wrong username **or** password → the same 401 `INVALID_CREDENTIALS`, and a dummy hash check runs when the user doesn't exist, so response timing doesn't reveal which usernames exist |
-| `session_service` | Create, look up, renew, and delete sessions | A new session lasts 7 days. On each request, if less than 6 days remain, `expires_at` is pushed back to 7 days from now (so it is written at most once a day). Expired sessions are treated as missing and deleted when found |
+| `session_service` | Create, look up, renew, and delete sessions | A new session lasts 7 days. On each request, if less than 6 days remain, `expires_at` is pushed back to 7 days from now and the `Set-Cookie` header is sent again with a fresh `Max-Age`, so the browser's cookie doesn't expire before the session (written at most once a day). Expired sessions are treated as missing and deleted when found |
 | `trip_service` | List, create, read, update, and delete trips | Every query filters by the current user; another user's trip is "not found" (404), never "forbidden", so trip IDs can't be probed. See the trip rules below |
 | `activity_service` | Create, update, and delete activities | The trip must belong to the current user. `day_number` must be between 1 and the trip's length. Activities are returned sorted: those with a time first, by time; then those without, by `created_at` |
 
@@ -158,7 +158,7 @@ Only failed logins are recorded. Rows older than 1 day are deleted whenever a ne
 No other third-party services in the MVP.
 
 ## 8. Validation
-- **Input validation approach:** Every request body is a Pydantic model with the same rules as the frontend's Zod schemas ([frontend-spec.md §9](./frontend-spec.md#9-forms--validation)). The API contract is the single source of truth for those rules; both sides follow it. Text fields are trimmed before checking their length.
+- **Input validation approach:** Every request body is a Pydantic model with the same rules as the frontend's Zod schemas ([frontend-spec.md §9](./frontend-spec.md#9-forms--validation)). The API contract is the single source of truth for those rules; both sides follow it. Text fields are trimmed before checking their length. Request models use `extra="forbid"`, so unknown fields (such as `dayNumber` when editing an activity) are rejected with 400.
 - **Rules that need the database** (username taken, day number within the trip, shortening a trip) are checked in the services.
 - **JSON naming:** The API uses camelCase (`startDate`, `dayNumber`), matching TypeScript; the Python code uses snake_case. Pydantic's `alias_generator=to_camel` converts between them.
 - **Shared schemas with frontend?** No, they can't be shared across languages. The API contract keeps them in sync, and both sides have tests for the key rules.
