@@ -105,7 +105,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Components used:** `AppLayout`, `TripForm`, `ConfirmDialog`
 - **Data needed (API calls):** `GET /trips/:tripId`, `PATCH /trips/:tripId`, `DELETE /trips/:tripId`
 - **User interactions:**
-  - **Save:** Before sending, the frontend counts the activities whose day number is greater than the new trip length (the `countActivitiesBeyondDay` helper). For example, going from 5 days to 3 removes Days 4 and 5. Moving the dates without changing the length removes nothing. If there are any, a `ConfirmDialog` shows: "Your new dates remove days that have 3 activities. They will be deleted." with "Delete and save" or "Cancel". Cancel changes nothing. If confirmed, or if no activities are affected, the trip is saved (PATCH) and the user goes to `/trips/:tripId`.
+  - **Save:** Before sending, the frontend counts the activities whose day number is greater than the new trip length (the `countActivitiesBeyondDay` helper). For example, going from 5 days to 3 removes Days 4 and 5. Moving the dates without changing the length removes nothing. If there are any, a `ConfirmDialog` shows: "Your new dates remove days that have 3 activities. They will be deleted." with "Delete and save" or "Cancel". Cancel changes nothing. If confirmed, or if no activities are affected, the trip is saved (PATCH) and the user goes to `/trips/:tripId`. When the user confirmed, the PATCH includes `"confirmDeleteActivities": true`; the backend refuses to delete activities without it. If the backend still answers 409 `ACTIVITIES_WOULD_BE_DELETED` (for example, activities were added in another tab), the dialog is shown again with the count from the server.
   - **Delete trip:** A `ConfirmDialog` shows: "Delete 'Paris Getaway' and all its activities? This can't be undone." On success, go to `/trips` with a toast.
 - **Loading / empty / error states:** Same as Create Trip. If the trip isn't found, show the Not Found page.
 
@@ -169,7 +169,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 
 ## 8. Authentication (Client Side)
 - **Login / signup flow:** On success, the backend sets the session cookie and returns the user. The frontend stores that user in the `['me']` query and navigates.
-- **Token storage:** The login token is kept in an `httpOnly`, `Secure`, `SameSite=Lax` cookie set by the backend. Page scripts cannot read it, so it is safe from XSS. The frontend never stores or reads the token; it sends every request with `credentials: 'include'`. *(The backend and API contract specs must match this.)*
+- **Token storage:** The login token is kept in an `httpOnly`, `Secure` (except in local development, which runs on plain `http://localhost`), `SameSite=Lax` cookie set by the backend. Page scripts cannot read it, so it is safe from XSS. The frontend never stores or reads the token; it sends every request with `credentials: 'include'`. *(Matches [backend-spec.md §6](./backend-spec.md#6-authentication--authorization).)*
 - **Startup:** When the app loads, it calls `GET /auth/me` and shows a full-page spinner until the answer arrives. A 200 means logged in; a 401 means logged out.
 - **Protected route handling:** `ProtectedRoute` and `PublicOnlyRoute` apply the route rules in section 3.
 - **Logout:** `POST /auth/logout`, then the app clears the query cache and goes to `/login`.
@@ -224,7 +224,9 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
   - 400: field errors on the form
   - 401: the session-expired flow (section 7, flow 5)
   - 404: Not Found page
-  - 409: shown on the related field (e.g. username taken)
+  - 409: shown on the related field (e.g. username taken), or the shortening warning on Edit Trip (`ACTIVITIES_WOULD_BE_DELETED`)
+  - 429 on login: message above the form: "Too many failed attempts. Please try again in 15 minutes."
+  - 503: toast "The service is starting up or unavailable. Please try again in a moment."
   - 5xx or network error: toast "Something went wrong. Please try again."
 - **Toasts / banners:** Success toasts for creating, editing, and deleting trips. Error toasts for saves that fail. Saving activities shows no success toast, because the change on screen is confirmation enough.
 - **Fallback / error boundary:** Each route has a React Router `errorElement` for unexpected crashes, with a "Reload" button.
@@ -241,10 +243,9 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 
 ## 15. Project Structure
 ```
-frontend/
+frontend/                 # vercel.json lives at the repository root (see backend spec)
   index.html
   vite.config.ts          # dev proxy: /api → backend (keeps cookies same-site)
-  vercel.json             # production rewrites: /api → backend, everything else → index.html
   .env.example            # VITE_API_BASE_URL=/api/v1
   src/
     main.tsx              # React root, QueryClientProvider, Toaster
@@ -272,29 +273,15 @@ frontend/
 ```
 
 ## 16. Deployment
-The frontend is hosted on **Vercel**.
+The frontend and the FastAPI backend are deployed together as **one Vercel project**, at one address. The full setup, including `vercel.json`, is in [backend-spec.md §14](./backend-spec.md#14-deployment). For the frontend, that means:
 
-- **Vercel project settings:**
-  - Root directory: `frontend`
-  - Framework preset: Vite
-  - Build command: `npm run build`
-  - Output directory: `dist`
+- **Build:** Vercel runs `cd frontend && npm ci && npm run build` and serves `frontend/dist`.
 - **Automatic deploys:** Every push to `main` deploys to production. Every other branch and pull request gets its own preview URL.
-- **`vercel.json` rewrites:**
-  ```json
-  {
-    "rewrites": [
-      { "source": "/api/:path*", "destination": "https://<backend-host>/api/:path*" },
-      { "source": "/(.*)", "destination": "/index.html" }
-    ]
-  }
-  ```
-  - The first rule sends API calls on to the backend. The browser only ever talks to the Vercel address, so the session cookie is a same-site cookie, even on the free `*.vercel.app` address and without a custom domain.
-  - The second rule is the SPA fallback. Refreshing or opening a link like `/trips/42` returns `index.html`, and React Router shows the right page. Real files such as JavaScript, CSS, and fonts are served first, because Vercel checks for a matching file before applying rewrites.
-  - `<backend-host>` is filled in once the backend host is chosen (see [backend-spec.md](./backend-spec.md)).
-- **Environment variables:** `VITE_API_BASE_URL=/api/v1` in every environment. It is the same everywhere, because the proxy handles where the backend lives.
+- **API calls:** `vercel.json` sends every `/api/*` request to the FastAPI function in the same project. The browser only ever talks to one address, so the session cookie is a same-site cookie, even on the free `*.vercel.app` address. No proxy to another host is needed.
+- **SPA fallback:** Every other address returns `index.html`, so refreshing or opening a link like `/trips/42` works, and React Router shows the right page. Real files such as JavaScript, CSS, and fonts are served first, because Vercel checks for a matching file before applying rewrites.
+- **Environment variables:** `VITE_API_BASE_URL=/api/v1` in every environment.
 - **HTTPS:** Vercel serves every address over HTTPS, which the `Secure` session cookie requires.
-- **Preview deployments:** Preview URLs proxy to the same backend as production, unless the backend has a separate staging environment. For the MVP, previews are only for checking how pages look; don't create test data with them.
+- **Preview deployments:** Each preview runs its own copy of the backend, connected to its own Neon database branch (see the backend spec), so testing on a preview can't change real data.
 
 ## 17. Open Questions
 - None right now.

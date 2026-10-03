@@ -124,10 +124,10 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 
 ## 11. Tech Stack (High Level)
 - Frontend: React + TypeScript single-page app, built with Vite and styled with Tailwind CSS. Data from the API is loaded and cached with TanStack Query; forms use React Hook Form + Zod. Font: Fira Sans. Details in [frontend-spec.md](./frontend-spec.md#2-tech-stack).
-- Backend: To be decided in [backend-spec.md](./backend-spec.md). It must provide a REST JSON API and log users in with an `httpOnly` session cookie.
-- Database: To be decided in [backend-spec.md](./backend-spec.md). It stores users, login sessions, trips, and activities.
-- Hosting / Deployment: The frontend is hosted on **Vercel**, deployed automatically from GitHub, with a proxy rule that sends `/api/*` to the backend so the session cookie stays same-site. Details in [frontend-spec.md](./frontend-spec.md#16-deployment). The backend host is to be decided in [backend-spec.md](./backend-spec.md).
-- Third-party services (maps, weather, auth, etc.): None in the MVP. PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
+- Backend: Python + FastAPI REST JSON API, with Pydantic validation, SQLAlchemy, and Alembic migrations. Users stay logged in with an `httpOnly` session cookie backed by a `sessions` table. Details in [backend-spec.md](./backend-spec.md#2-tech-stack).
+- Database: PostgreSQL, hosted on **Neon**. It stores users, login sessions, trips, and activities.
+- Hosting / Deployment: **Vercel**, one project for both: the React frontend as static files and the FastAPI backend as Vercel Functions, at the same address, deployed automatically on every push to GitHub. Preview deployments get their own Neon database branch. Development runs entirely on your own computer. Details in [backend-spec.md](./backend-spec.md#14-deployment).
+- Third-party services (maps, weather, auth, etc.): None in the MVP besides the hosts above (Vercel, Neon). PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
 
 ## 12. Open Questions
 - None right now.
