@@ -139,12 +139,13 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
 <div class="page">
 
 <header class="hero">
-  <span class="eyebrow">Project guide · as of 4 Oct 2026</span>
+  <span class="eyebrow">Project guide · updated 4 Oct 2026</span>
   <h1>PlanMyTrip Build Guide</h1>
-  <p class="lede">What the app is, how its parts fit together, every decision made so far and why, and a walkthrough of the code built in the setup check. Read it top to bottom once; come back to the glossary when a term is unfamiliar.</p>
+  <p class="lede">What the app does, how its parts fit together, every decision made and why, and a walkthrough of the code that implements the four specs. Read it top to bottom once; come back to the glossary when a term is unfamiliar.</p>
   <div class="meta-row">
-    <span class="pill">Specs: complete on <code>main</code></span>
-    <span class="pill">Code: <code>setup-check</code> branch</span>
+    <span class="pill">Specs: complete</span>
+    <span class="pill">App: built on <code>main</code></span>
+    <span class="pill">87 automated tests passing</span>
     <span class="pill">Next: connect Vercel</span>
   </div>
 </header>
@@ -158,10 +159,12 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
     <li><a href="#specs">The four specs</a></li>
     <li><a href="#decisions">Decisions and why</a></li>
     <li><a href="#stack">The tools, explained</a></li>
-    <li><a href="#built">What the setup check built</a></li>
+    <li><a href="#files">The code, folder by folder</a></li>
     <li><a href="#request">One request, start to finish</a></li>
+    <li><a href="#features">How the key features work</a></li>
     <li><a href="#code">Code walkthrough</a></li>
-    <li><a href="#run">Run and test it</a></li>
+    <li><a href="#tests">Tests and checks</a></li>
+    <li><a href="#run">Run it</a></li>
     <li><a href="#next">What comes next</a></li>
     <li><a href="#glossary">Glossary</a></li>
   </ol>
@@ -173,18 +176,18 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
 <section id="app">
   <div class="section-head">
     <h2>The app in one page</h2>
-    <p>From <code>specs/goal-spec.md</code>.</p>
+    <p>From <code>specs/goal-spec.md</code>, now built.</p>
   </div>
   <p><strong>Problem:</strong> travelers scatter day-by-day plans across notes apps, spreadsheets and chats. <strong>PlanMyTrip</strong> gives them one place to plan a trip day by day and print a clean itinerary.</p>
   <div class="grid-2">
     <div class="card">
-      <h3>What a user can do (MVP)</h3>
+      <h3>What a user can do</h3>
       <ul>
         <li>Sign up and log in with a username and password</li>
         <li>Add a trip: <em>From</em> and <em>To</em> dates, a destination, and a Trip Type (Solo, Couple, Family, Friends)</li>
         <li>See all their trips on the home screen</li>
         <li>Plan each day (Day 1 … Day N): add, edit, delete activities with a title, optional time and notes</li>
-        <li>Print the itinerary as a PDF, and edit or delete a trip</li>
+        <li>Print the itinerary as a PDF; edit or delete a trip</li>
       </ul>
     </div>
     <div class="card">
@@ -198,7 +201,18 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
       </ul>
     </div>
   </div>
-  <p>Screens follow your hand-drawn mockups in <code>specs/mockups/</code>: a home screen with a welcome and “Add new trip”, a “Plan a new trip” form, and a trip page with the days plus Print, Delete and Edit.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Screen</th><th>Address</th><th>From your mockups</th></tr></thead>
+      <tbody>
+        <tr><td>Log in / Create account</td><td class="mono">/login, /signup</td><td>Not sketched; a centered card</td></tr>
+        <tr><td>My Trips (home)</td><td class="mono">/trips</td><td>“First screen”: welcome, “+ Add new trip”, trip cards</td></tr>
+        <tr><td>Plan a new trip</td><td class="mono">/trips/new</td><td>“New trip screen”: From, To, Destination (+ Trip Type), “Plan”</td></tr>
+        <tr><td>Trip page</td><td class="mono">/trips/:id</td><td>“Saved trip” + Day 1…N: days, Edit, Print, Delete</td></tr>
+        <tr><td>Edit trip</td><td class="mono">/trips/:id/edit</td><td>Same form as New trip, with the shortening warning</td></tr>
+      </tbody>
+    </table>
+  </div>
 </section>
 
 <!-- 2 -->
@@ -217,30 +231,23 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
             <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/>
           </marker>
         </defs>
-        <!-- Browser -->
         <rect x="20" y="110" width="150" height="80" rx="10" fill="var(--surface)" stroke="var(--primary)" stroke-width="2"/>
         <text x="95" y="145" text-anchor="middle" fill="var(--primary)" font-family="Fira Sans, sans-serif" font-size="17" font-weight="600">Browser</text>
         <text x="95" y="168" text-anchor="middle" fill="var(--muted)" font-family="Fira Sans, sans-serif" font-size="13">phone or laptop</text>
-        <!-- Vercel box -->
         <rect x="230" y="20" width="400" height="260" rx="12" fill="var(--primary-soft)" stroke="var(--line)" stroke-width="1.5"/>
         <text x="250" y="46" fill="var(--primary)" font-family="Fira Sans, sans-serif" font-size="15" font-weight="600">Vercel project (one address)</text>
-        <!-- Router -->
         <rect x="250" y="120" width="120" height="60" rx="8" fill="var(--surface)" stroke="var(--line)"/>
         <text x="310" y="146" text-anchor="middle" fill="var(--ink)" font-family="Fira Sans, sans-serif" font-size="14" font-weight="500">vercel.json</text>
         <text x="310" y="165" text-anchor="middle" fill="var(--muted)" font-family="Fira Sans, sans-serif" font-size="12">routing</text>
-        <!-- Frontend service -->
         <rect x="420" y="70" width="190" height="70" rx="8" fill="var(--surface)" stroke="var(--primary)" stroke-width="1.5"/>
         <text x="515" y="98" text-anchor="middle" fill="var(--primary)" font-family="Fira Sans, sans-serif" font-size="15" font-weight="600">Frontend service</text>
         <text x="515" y="120" text-anchor="middle" fill="var(--muted)" font-family="Fira Sans, sans-serif" font-size="12">React pages, frontend/</text>
-        <!-- Backend service -->
         <rect x="420" y="170" width="190" height="70" rx="8" fill="var(--surface)" stroke="var(--primary)" stroke-width="1.5"/>
         <text x="515" y="198" text-anchor="middle" fill="var(--primary)" font-family="Fira Sans, sans-serif" font-size="15" font-weight="600">Backend service</text>
         <text x="515" y="220" text-anchor="middle" fill="var(--muted)" font-family="Fira Sans, sans-serif" font-size="12">FastAPI, backend/</text>
-        <!-- Database -->
         <rect x="690" y="170" width="150" height="70" rx="8" fill="var(--surface)" stroke="var(--primary)" stroke-width="2"/>
         <text x="765" y="198" text-anchor="middle" fill="var(--primary)" font-family="Fira Sans, sans-serif" font-size="15" font-weight="600">Neon</text>
         <text x="765" y="220" text-anchor="middle" fill="var(--muted)" font-family="Fira Sans, sans-serif" font-size="12">PostgreSQL</text>
-        <!-- Arrows -->
         <line x1="170" y1="150" x2="246" y2="150" stroke="var(--muted)" stroke-width="2" marker-end="url(#arrow)"/>
         <path d="M370,140 C395,140 395,105 416,105" fill="none" stroke="var(--muted)" stroke-width="2" marker-end="url(#arrow)"/>
         <path d="M370,160 C395,160 395,205 416,205" fill="none" stroke="var(--muted)" stroke-width="2" marker-end="url(#arrow)"/>
@@ -269,45 +276,49 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
 <section id="journey">
   <div class="section-head">
     <h2>What we did, in order</h2>
-    <p>Spec-driven development: decide and write down <em>what</em> to build before writing code. Commit IDs let you find each step in <code>git log</code>.</p>
+    <p>Spec-driven development: decide and write down <em>what</em> to build, prove the setup, then build it. Commit IDs let you find each step in <code>git log</code>.</p>
   </div>
   <ol class="timeline">
     <li><span class="dot">1</span><div class="tl-body">
       <h3>Repository and spec templates</h3>
-      <p>Created four spec templates, put the project under git, and published it as a public GitHub repo.</p>
+      <p>Four spec templates, put under git, published as a public GitHub repo.</p>
       <span class="commits">1843be5</span></div></li>
     <li><span class="dot">2</span><div class="tl-body">
       <h3>Goal spec</h3>
-      <p>Refined your goals into outcomes, wrote user stories US1–US7 with acceptance criteria, and a glossary. Settled: warn-then-delete when shortening, 14-day maximum, PDF built in the browser.</p>
+      <p>User stories US1–US7 with acceptance criteria, and a glossary. Settled: warn-then-delete when shortening, 14-day maximum, PDF built in the browser.</p>
       <span class="commits">be1e820 · f7843bf</span></div></li>
     <li><span class="dot">3</span><div class="tl-body">
       <h3>Frontend spec and design</h3>
-      <p>Chose React + Vite + TypeScript + Tailwind. Set colors (sand background, white cards, dark blue) and the Fira Sans font, checked with a preview page. Chose Vercel for hosting.</p>
+      <p>React + Vite + TypeScript + Tailwind; sand background, white cards, dark blue, Fira Sans. Vercel chosen for hosting.</p>
       <span class="commits">1084100 · 81ca5ab · da4c2de · 5dfa8e9 · 3b41e2a</span></div></li>
     <li><span class="dot">4</span><div class="tl-body">
       <h3>Backend spec</h3>
-      <p>Chose Python + FastAPI and PostgreSQL, hosted on Vercel with Neon. Designed the tables, login sessions and security.</p>
+      <p>Python + FastAPI and PostgreSQL on Vercel with Neon. Tables, sessions, security.</p>
       <span class="commits">f2b0529</span></div></li>
     <li><span class="dot">5</span><div class="tl-body">
       <h3>Mockups</h3>
-      <p>Reshaped the screens around your sketches: trips have no name, home has “Add new trip”, the trip page has Print, Delete and Edit.</p>
+      <p>Screens reshaped around your sketches: no trip names, “Add new trip”, Print / Delete / Edit on the trip page.</p>
       <span class="commits">24b258d</span></div></li>
     <li><span class="dot">6</span><div class="tl-body">
       <h3>API contract</h3>
-      <p>Wrote the 12 endpoints plus health, every data shape, validation rule and error code: the agreement both halves follow.</p>
+      <p>13 endpoints, every data shape, validation rule and error code: the agreement both halves follow.</p>
       <span class="commits">b571103</span></div></li>
     <li><span class="dot">7</span><div class="tl-body">
       <h3>Remaining decisions, one by one</h3>
-      <p>Log out when the page closes and save unsaved edits; login rate limiting moved to future work; database migrations run during each Vercel build.</p>
+      <p>Log out when the page closes and save unsaved edits; login rate limiting to future work; migrations during each Vercel build.</p>
       <span class="commits">b33b884</span></div></li>
     <li><span class="dot">8</span><div class="tl-body">
       <h3>Machine setup and final choices</h3>
-      <p>Installed <code>uv</code>, fixed <code>git push</code> with <code>gh auth setup-git</code>, connected Docker to WSL. Switched to Python 3.14 and to Vercel Services.</p>
+      <p><code>uv</code>, <code>gh auth setup-git</code>, Docker connected to WSL; Python 3.14; Vercel Services.</p>
       <span class="commits">cb42fcd · 2e038cd</span></div></li>
-    <li class="now"><span class="dot">9</span><div class="tl-body">
+    <li><span class="dot">9</span><div class="tl-body">
       <h3>Setup check (“hello world”)</h3>
-      <p>Built the skeleton of every part and proved locally that browser → frontend → backend → database works. Pushed on its own branch, not merged yet.</p>
-      <span class="commits">30ba1ff on setup-check</span></div></li>
+      <p>Skeleton of every part, proving browser → frontend → backend → database locally. Merged into <code>main</code>; the <code>setup-check</code> branch was then deleted.</p>
+      <span class="commits">30ba1ff · 2eaa459</span></div></li>
+    <li class="now"><span class="dot">10</span><div class="tl-body">
+      <h3>The full app</h3>
+      <p>Backend (tables, login, trips, activities), frontend (every page from the mockups, PDF, close-to-logout, save-on-close), and 87 automated tests. Linting settled on oxlint.</p>
+      <span class="commits">on main, after 2eaa459</span></div></li>
   </ol>
 </section>
 
@@ -330,7 +341,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
   </div>
   <div class="callout">
     <strong>Why a contract?</strong>
-    <p>The frontend is TypeScript and the backend is Python, so they can't share code. Both follow <code>api-contract-spec.md</code> exactly, so they agree on every field name, rule and error.</p>
+    <p>The frontend is TypeScript and the backend is Python, so they can't share code. Both follow <code>api-contract-spec.md</code> exactly: the same field names, rules, and error messages appear in <code>frontend/src/lib/schemas.ts</code> (Zod) and <code>backend/app/schemas/</code> (Pydantic).</p>
   </div>
 </section>
 
@@ -357,6 +368,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
         <tr><td>Migrations</td><td>Run during each Vercel build</td><td>Automatic, and new code never goes live before its tables exist</td></tr>
         <tr><td>Failed-login limits</td><td>Future work</td><td>Your choice, to keep the MVP small</td></tr>
         <tr><td>Python tooling</td><td><code>uv</code></td><td>Manages the environment, locks exact versions, and is fast</td></tr>
+        <tr><td>Frontend linting</td><td>oxlint (instead of ESLint + Prettier)</td><td>Came with Vite's template, much faster, includes React and accessibility rules</td></tr>
       </tbody>
     </table>
   </div>
@@ -366,130 +378,158 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
 <section id="stack">
   <div class="section-head">
     <h2>The tools, explained</h2>
-    <p>One line each on what the tool does in <em>this</em> project. Versions are what's installed now.</p>
+    <p>One line each on what the tool does in <em>this</em> project.</p>
   </div>
   <div class="grid-2">
     <div class="card">
       <h3>Frontend</h3>
       <ul>
-        <li><strong>React 19</strong>: builds screens from reusable pieces and redraws when data changes</li>
-        <li><strong>TypeScript 6</strong>: JavaScript with types, so mistakes show in the editor</li>
-        <li><strong>Vite 8</strong>: the dev server (instant reload) and the production build</li>
-        <li><strong>Tailwind CSS 4</strong>: styling with small classes like <code>bg-sand</code>; our colors are defined once as tokens</li>
-        <li><strong>Fira Sans</strong>: the font, bundled with the app (<code>@fontsource</code>)</li>
-        <li><strong>oxlint</strong>: checks code for likely bugs (came with Vite's template)</li>
+        <li><strong>React 19</strong>: builds screens from reusable pieces</li>
+        <li><strong>TypeScript</strong> (strict): types for every API shape</li>
+        <li><strong>Vite</strong>: dev server and production build</li>
+        <li><strong>Tailwind CSS</strong>: styling with our color tokens (<code>bg-sand</code>, <code>text-primary</code>)</li>
+        <li><strong>React Router 8</strong>: maps addresses to pages, guards logged-in pages</li>
+        <li><strong>TanStack Query</strong>: loads and caches server data</li>
+        <li><strong>React Hook Form + Zod</strong>: forms and their rules</li>
+        <li><strong>date-fns</strong>: calendar-date math</li>
+        <li><strong>@react-pdf/renderer</strong>: the itinerary PDF, loaded only on Print</li>
+        <li><strong>sonner</strong>: small pop-up messages (toasts)</li>
+        <li><strong>oxlint</strong>: checks code for likely bugs</li>
       </ul>
     </div>
     <div class="card">
       <h3>Backend</h3>
       <ul>
-        <li><strong>FastAPI 0.142</strong>: maps URLs like <code>/api/v1/health</code> to Python functions</li>
-        <li><strong>Pydantic 2</strong>: checks incoming data against rules; also reads settings</li>
-        <li><strong>SQLAlchemy 2.1</strong>: talks to the database from Python</li>
-        <li><strong>psycopg 3</strong>: the driver that actually connects to PostgreSQL</li>
-        <li><strong>Alembic 1.20</strong>: migrations, versioned changes to the tables</li>
-        <li><strong>uvicorn</strong>: runs the FastAPI app locally</li>
-        <li><strong>pytest</strong> + <strong>ruff</strong>: tests, and linting/formatting</li>
+        <li><strong>FastAPI</strong>: maps URLs to Python functions</li>
+        <li><strong>Pydantic</strong>: checks incoming JSON against the contract's rules</li>
+        <li><strong>SQLAlchemy 2</strong>: tables as Python classes, queries without raw SQL</li>
+        <li><strong>psycopg 3</strong>: the PostgreSQL driver</li>
+        <li><strong>Alembic</strong>: migrations (<code>0001</code> baseline, <code>0002</code> tables)</li>
+        <li><strong>argon2-cffi</strong>: password hashing (Argon2id)</li>
+        <li><strong>pytest</strong> + <strong>ruff</strong>: tests and linting</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Testing</h3>
+      <ul>
+        <li><strong>Vitest</strong>: runs frontend tests</li>
+        <li><strong>React Testing Library</strong>: tests pages the way a user uses them</li>
+        <li><strong>MSW</strong>: pretends to be the backend in frontend tests</li>
+        <li><strong>Playwright</strong>: drives a real browser through the whole app</li>
       </ul>
     </div>
     <div class="card">
       <h3>Infrastructure</h3>
       <ul>
-        <li><strong>Docker</strong>: runs PostgreSQL 16 in a disposable container on your machine</li>
-        <li><strong>Vercel</strong>: hosts frontend and backend, deploys on every <code>git push</code></li>
-        <li><strong>Neon</strong>: hosted PostgreSQL, with a database copy per preview</li>
-        <li><strong>GitHub</strong>: the master copy of the code and its history</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>Your machine</h3>
-      <ul>
-        <li><strong>WSL (Ubuntu)</strong>: the Linux system where the project lives</li>
-        <li><strong>uv 0.12</strong>: Python packages and the project's own Python 3.14.8</li>
-        <li><strong>Node 24 / npm 11</strong>: JavaScript runtime and packages</li>
-        <li><strong>gh</strong>: GitHub CLI; also provides git's login</li>
-        <li><strong>Docker Desktop</strong>: with WSL Integration on</li>
+        <li><strong>Docker</strong>: PostgreSQL 16 on your machine</li>
+        <li><strong>Vercel</strong>: hosting, deploys on every <code>git push</code></li>
+        <li><strong>Neon</strong>: hosted PostgreSQL, a copy per preview</li>
+        <li><strong>GitHub</strong>: the master copy of the code</li>
+        <li><strong>uv</strong>, <strong>Node/npm</strong>, <strong>gh</strong>, <strong>WSL</strong>: your local tools</li>
       </ul>
     </div>
   </div>
 </section>
 
 <!-- 7 -->
-<section id="built">
+<section id="files">
   <div class="section-head">
-    <h2>What the setup check built</h2>
-    <p>Branch <code>setup-check</code>, commit <code>30ba1ff</code>. The smallest version of every part, wired together, with no features yet.</p>
+    <h2>The code, folder by folder</h2>
+    <p>The backend is layered: <strong>routers</strong> handle HTTP, <strong>services</strong> hold the rules, <strong>models</strong> are the tables. The frontend is split into pages, components, data hooks, and plain helpers.</p>
   </div>
-  <pre class="tree" aria-label="Project files"><code>PlanMyTrip/
-├── vercel.json              <span class="c"># how Vercel builds and routes the two services</span>
-├── README.md                <span class="c"># how to run it locally</span>
-├── .gitignore               <span class="c"># keeps secrets (.env) and installed packages out of git</span>
-├── specs/                   <span class="c"># the four specs + mockups</span>
-├── docs/build-guide.html    <span class="c"># this guide</span>
-├── backend/
-│   ├── pyproject.toml       <span class="c"># Python packages we use (like package.json)</span>
-│   ├── uv.lock              <span class="c"># exact versions of every package</span>
-│   ├── .python-version      <span class="c"># 3.14, for uv and for Vercel</span>
-│   ├── .env.example         <span class="c"># template for local settings (.env is never committed)</span>
-│   ├── docker-compose.yml   <span class="c"># local PostgreSQL 16</span>
-│   ├── docker/init-test-db.sql  <span class="c"># creates the separate test database</span>
-│   ├── alembic.ini, alembic/    <span class="c"># migration setup</span>
-│   │   └── versions/0001_baseline.py  <span class="c"># first, empty migration</span>
-│   ├── app/
-│   │   ├── main.py          <span class="c"># creates the FastAPI app, mounts /api/v1</span>
-│   │   ├── config.py        <span class="c"># reads settings (DATABASE_URL, …)</span>
-│   │   ├── db.py            <span class="c"># database connection</span>
-│   │   ├── errors.py        <span class="c"># the standard error format</span>
-│   │   └── routers/health.py  <span class="c"># GET /api/v1/health</span>
-│   └── tests/
-│       ├── conftest.py      <span class="c"># test setup: test database + migrations</span>
-│       └── test_health.py   <span class="c"># 3 tests</span>
-└── frontend/
-    ├── package.json, package-lock.json  <span class="c"># JavaScript packages and exact versions</span>
-    ├── vite.config.ts       <span class="c"># React + Tailwind plugins, /api proxy to port 8000</span>
-    ├── index.html           <span class="c"># the single HTML page React fills in</span>
-    └── src/
-        ├── main.tsx         <span class="c"># starts React</span>
-        ├── App.tsx          <span class="c"># the setup check page</span>
-        └── styles.css       <span class="c"># Tailwind + color tokens + Fira Sans</span></code></pre>
-
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Check</th><th>Result</th></tr></thead>
-      <tbody>
-        <tr><td>PostgreSQL in Docker, with test database</td><td class="status-ok">Passed</td></tr>
-        <tr><td>Migration <code>0001</code> applied</td><td class="status-ok">Passed</td></tr>
-        <tr><td>Backend tests (3): ok, database down → 503, unknown path → 404</td><td class="status-ok">Passed</td></tr>
-        <tr><td>Lint: ruff (backend), oxlint (frontend); frontend type check and build</td><td class="status-ok">Passed</td></tr>
-        <tr><td>Health check through the frontend's address</td><td class="status-ok">Passed, <code>{"status":"ok"}</code></td></tr>
-        <tr><td>Vercel build, migrations on Vercel, preview database branch</td><td class="status-next">Next, needs your Vercel account</td></tr>
-      </tbody>
-    </table>
-  </div>
+  <pre class="tree" aria-label="Backend files"><code>backend/
+├── pyproject.toml, uv.lock, .python-version  <span class="c"># Python 3.14 + exact package versions</span>
+├── docker-compose.yml, docker/                <span class="c"># local PostgreSQL 16 + test database</span>
+├── alembic/versions/
+│   ├── 0001_baseline.py                       <span class="c"># empty starting point (setup check)</span>
+│   └── 0002_users_sessions_trips_activities.py  <span class="c"># the four tables</span>
+├── app/
+│   ├── main.py          <span class="c"># creates the app: error handlers, middleware, /api/v1 routers</span>
+│   ├── config.py        <span class="c"># settings from environment variables</span>
+│   ├── db.py            <span class="c"># database connection (Neon-ready)</span>
+│   ├── deps.py          <span class="c"># "who is logged in?" for every protected endpoint</span>
+│   ├── errors.py        <span class="c"># ApiError + the contract's error shape for every failure</span>
+│   ├── middleware.py    <span class="c"># request log line; JSON-only writes (CSRF protection)</span>
+│   ├── security.py      <span class="c"># password hashing, session tokens</span>
+│   ├── models/          <span class="c"># tables: User, UserSession, Trip, Activity</span>
+│   ├── schemas/         <span class="c"># request/response shapes and validation messages</span>
+│   ├── routers/         <span class="c"># health, auth, trips, activities (HTTP only)</span>
+│   └── services/        <span class="c"># auth, session, trip, activity rules</span>
+└── tests/               <span class="c"># 45 tests: auth, sessions, trips, activities, ownership, health</span></code></pre>
+  <pre class="tree" aria-label="Frontend files"><code>frontend/src/
+├── main.tsx, router.tsx, queryClient.ts  <span class="c"># start-up, routes, cache + "session expired" handling</span>
+├── styles.css           <span class="c"># Tailwind + color tokens + Fira Sans</span>
+├── types/index.ts       <span class="c"># Trip, Activity, User shapes from the contract</span>
+├── api/                 <span class="c"># client.ts (fetch + ApiError), auth.ts, trips.ts</span>
+├── hooks/               <span class="c"># useAuth, useTrips (+ mutations), useUnsavedFormRegistry</span>
+├── lib/                 <span class="c"># dates, activities (sorting), schemas (Zod), tabSession, unsavedForms, errors</span>
+├── components/          <span class="c"># TripForm, DayCard, DayNav, ConfirmDialog, PrintButton, layouts, guards …</span>
+├── pages/               <span class="c"># Login, Signup, Trips, NewTrip, Trip, EditTrip, NotFound</span>
+├── pdf/                 <span class="c"># ItineraryPdf.tsx (layout), exportItinerary.ts (download)</span>
+└── test/                <span class="c"># test setup, MSW fake server, render helpers</span>
+frontend/e2e/planmytrip.spec.ts  <span class="c"># browser tests, desktop + 375px</span></code></pre>
 </section>
 
 <!-- 8 -->
 <section id="request">
   <div class="section-head">
     <h2>One request, start to finish</h2>
-    <p>What happens when you open <code>http://localhost:5173</code>. Every future feature follows the same path, just with more data.</p>
+    <p>What happens when you type “Visit the Louvre” on Day 2 and click Save. Every feature follows this same path.</p>
   </div>
   <ol class="flow">
-    <li><div><span class="where">Browser</span><p>Asks Vite for the page. Vite returns <code>index.html</code> and the JavaScript built from <code>main.tsx</code> and <code>App.tsx</code>.</p></div></li>
-    <li><div><span class="where">React · App.tsx</span><p>The page appears showing “API: checking…”. Right after, <code>useEffect</code> runs <code>fetch('/api/v1/health')</code>.</p></div></li>
-    <li><div><span class="where">Vite proxy · vite.config.ts</span><p>The path starts with <code>/api</code>, so Vite forwards it to <code>localhost:8000</code>. The browser never knows a second server exists.</p></div></li>
-    <li><div><span class="where">FastAPI · main.py → health.py</span><p>FastAPI matches <code>/api/v1/health</code> to the <code>health()</code> function and first calls <code>get_db()</code> for a database session.</p></div></li>
-    <li><div><span class="where">Database · db.py</span><p>The session connects to PostgreSQL in Docker using <code>DATABASE_URL</code> from <code>.env</code> and runs <code>SELECT 1</code>, the smallest possible query.</p></div></li>
-    <li><div><span class="where">Response</span><p>Success returns <code>{"status": "ok"}</code>. If the database fails, it returns status 503 with the contract's standard error shape.</p></div></li>
-    <li><div><span class="where">React</span><p>The card updates: a dark blue dot and “API: ok”, or a red message explaining what's wrong.</p></div></li>
+    <li><div><span class="where">Form · ActivityForm.tsx</span><p>React Hook Form checks the values with the Zod <code>activitySchema</code>: title required, time like 09:30, notes up to 500 characters. Errors show under each field.</p></div></li>
+    <li><div><span class="where">Data hook · useTrips.ts</span><p><code>useActivityMutations().add</code> calls <code>tripsApi.addActivity</code> with <code>{ dayNumber: 2, title, time, notes }</code>.</p></div></li>
+    <li><div><span class="where">API client · client.ts</span><p><code>fetch('/api/v1/trips/&lt;id&gt;/activities')</code> with <code>Content-Type: application/json</code>. The browser attaches the <code>session</code> cookie by itself.</p></div></li>
+    <li><div><span class="where">Proxy / routing</span><p>Locally Vite forwards <code>/api</code> to port 8000; on Vercel, <code>vercel.json</code> sends it to the backend service.</p></div></li>
+    <li><div><span class="where">Middleware · middleware.py</span><p>Logs the request and checks it's JSON, otherwise 415 (CSRF protection).</p></div></li>
+    <li><div><span class="where">Router · routers/activities.py</span><p>Pydantic validates the body against <code>ActivityCreateIn</code> (trims text, rejects unknown fields). <code>CurrentUser</code> looks up the session from the cookie, or answers 401.</p></div></li>
+    <li><div><span class="where">Service · activity_service.py</span><p>Loads the trip <em>only if it belongs to this user</em> (else 404), checks Day 2 is within the trip, saves the activity.</p></div></li>
+    <li><div><span class="where">Database</span><p>SQLAlchemy inserts a row into <code>activities</code>; the response is the new activity as JSON, with time as <code>"09:00"</code>.</p></div></li>
+    <li><div><span class="where">Back in the browser</span><p>TanStack Query refetches the trip, the form closes, and the activity appears in Day 2 in time order.</p></div></li>
   </ol>
-  <div class="callout">
-    <strong>On Vercel, only step 3 changes.</strong>
-    <p>Instead of Vite's proxy, the rules in <code>vercel.json</code> send <code>/api/…</code> to the backend service, and the database is Neon instead of Docker.</p>
-  </div>
 </section>
 
 <!-- 9 -->
+<section id="features">
+  <div class="section-head">
+    <h2>How the key features work</h2>
+    <p>The behaviour that took the most decisions, explained in plain words.</p>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <h3>Logging in</h3>
+      <p>Signup stores the password only as an Argon2id hash. Login creates a random token: the browser keeps it in an <code>httpOnly</code> cookie (page scripts can't read it), and the database keeps only a SHA-256 hash of it. Each request looks the hash up in <code>sessions</code>.</p>
+      <p class="mono">services/session_service.py</p>
+    </div>
+    <div class="card">
+      <h3>Logged out when the page closes</h3>
+      <p>After login the tab stores a marker in <code>sessionStorage</code>, which survives refresh but is wiped when the tab closes. On start-up: no marker → call logout and show the login page; marker → ask the server who is logged in. Sessions also end after 12 idle hours.</p>
+      <p class="mono">lib/tabSession.ts · hooks/useAuth.ts</p>
+    </div>
+    <div class="card">
+      <h3>Saving the last edit on close</h3>
+      <p>Each open form registers “what I'd send if the page closed now”. On the browser's <code>pagehide</code> event, every valid pending form is sent with <code>fetch(…, {keepalive: true})</code>, which finishes even after the page is gone. A change that would delete activities is never auto-saved.</p>
+      <p class="mono">lib/unsavedForms.ts · ActivityForm.tsx · TripForm.tsx</p>
+    </div>
+    <div class="card">
+      <h3>Shortening a trip</h3>
+      <p>The Edit page counts activities on days past the new length. If any, it asks first, then sends <code>confirmDeleteActivities: true</code>. The backend refuses without that flag (409), and deletes plus updates in one transaction, so nothing is half-done.</p>
+      <p class="mono">pages/EditTripPage.tsx · services/trip_service.py</p>
+    </div>
+    <div class="card">
+      <h3>Only your own trips</h3>
+      <p>Every trip query includes “and belongs to the logged-in user”. Someone else's trip looks exactly like a missing one (404), so IDs can't be probed. A test tries all 7 endpoints as another user.</p>
+      <p class="mono">tests/test_ownership.py</p>
+    </div>
+    <div class="card">
+      <h3>Print</h3>
+      <p>Clicking Print loads the PDF library (about 445 KB) only then, builds the itinerary with Fira Sans and the app's dark blue, and downloads <code>Paris-France-2026-10-10-itinerary.pdf</code>.</p>
+      <p class="mono">components/PrintButton.tsx · pdf/</p>
+    </div>
+  </div>
+</section>
+
+<!-- 10 -->
 <section id="code">
   <div class="section-head">
     <h2>Code walkthrough</h2>
@@ -497,132 +537,107 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
   </div>
 
   <details>
-    <summary>backend/app/main.py: the app and its URL prefix</summary>
+    <summary>backend/app/models/trip.py: tables as Python classes</summary>
     <div class="det-body">
-<pre><code>app = FastAPI(title="PlanMyTrip API", docs_url="/api/v1/docs", openapi_url="/api/v1/openapi.json")
+<pre><code>class Trip(UUIDPrimaryKey, Timestamps, Base):
+    __tablename__ = "trips"
+    __table_args__ = (
+        CheckConstraint("end_date &gt;= start_date", name="trips_end_after_start"),
+        CheckConstraint(f"end_date - start_date &lt;= {MAX_TRIP_DAYS - 1}", name="trips_max_length"),
+        …
+    )
+    activities: Mapped[list[Activity]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, order_by=…)
 
-api_v1 = APIRouter(prefix="/api/v1")
-api_v1.include_router(health.router)
-app.include_router(api_v1)</code></pre>
-      <p>Creates the app and puts every route under <code>/api/v1</code>, as the contract requires. Vercel passes the full path (<code>/api/v1/health</code>) to the backend, so the same prefix works locally and hosted. The interactive docs live at <code>/api/v1/docs</code>.</p>
+    @property
+    def duration_days(self) -&gt; int:
+        return (self.end_date - self.start_date).days + 1</code></pre>
+      <p>Each class is a table. The <code>CheckConstraint</code>s make the database itself refuse a trip longer than 14 days, even if the code had a bug. <code>cascade</code> deletes a trip's activities with it (a test caught this missing at first). <code>alembic revision --autogenerate</code> turns changes here into migration files.</p>
     </div>
   </details>
 
   <details>
-    <summary>backend/app/config.py: settings from the environment</summary>
+    <summary>backend/app/services/trip_service.py: the shortening rule</summary>
     <div class="det-body">
-<pre><code>class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
-    database_url: str
-    database_url_unpooled: str | None = None
-    app_env: str = "development"</code></pre>
-      <p>Reads settings from environment variables, or from <code>backend/.env</code> locally. Secrets never appear in code. On Vercel, the Neon integration supplies <code>DATABASE_URL</code> and <code>DATABASE_URL_UNPOOLED</code>.</p>
-      <p><code>to_sqlalchemy_url()</code> turns <code>postgresql://…</code> (what Neon and Docker give) into <code>postgresql+psycopg://…</code> (what SQLAlchemy needs to pick the psycopg driver).</p>
+<pre><code>new_duration = (new_end - new_start).days + 1
+removed = db.scalar(select(func.count()).select_from(Activity)
+    .where(Activity.trip_id == trip.id, Activity.day_number &gt; new_duration))
+if removed and not data.confirm_delete_activities:
+    raise ApiError(409, "ACTIVITIES_WOULD_BE_DELETED", …,
+                   [{"activitiesToDelete": removed, "newDurationDays": new_duration}])
+if removed:
+    db.execute(delete(Activity).where(…, Activity.day_number &gt; new_duration))
+…
+db.commit()  # the trip change and any activity deletion succeed or fail together</code></pre>
+      <p>Because activities are tied to day numbers, only a <em>shorter</em> trip removes any. Moving the dates keeps the plan intact.</p>
     </div>
   </details>
 
   <details>
-    <summary>backend/app/db.py: connecting to the database</summary>
+    <summary>backend/app/services/session_service.py: sessions and the idle timeout</summary>
     <div class="det-body">
-<pre><code>return create_engine(
-    get_settings().sqlalchemy_url,
-    poolclass=NullPool,
-    connect_args={"prepare_threshold": None},
-)</code></pre>
-      <p><code>NullPool</code>: don't keep connections open between requests. On Vercel each function instance is short-lived, and Neon's own “pooler” shares connections instead.</p>
-      <p><code>prepare_threshold=None</code>: turns off a psycopg speed trick (prepared statements) that Neon's pooler can't handle.</p>
-      <p><code>get_db()</code> hands each request its own session and always closes it afterwards.</p>
+<pre><code>def user_for_token(db, token):
+    session = db.get(UserSession, hash_token(token))
+    if session is None: return None
+    if session.expires_at &lt;= now:            # 12 idle hours passed
+        db.delete(session); db.commit(); return None
+    if session.expires_at - now &lt; _idle() - RENEW_MARGIN:
+        session.expires_at = now + _idle()  # renewed at most once an hour
+        db.commit()
+    return session.user</code></pre>
+      <p>Used by <code>deps.get_current_user</code>, which every protected endpoint depends on. Logout deletes the row, so the token stops working immediately.</p>
     </div>
   </details>
 
   <details>
-    <summary>backend/app/routers/health.py: the first endpoint</summary>
+    <summary>backend/app/middleware.py and errors.py: safety nets</summary>
     <div class="det-body">
-<pre><code>@router.get("/health")
-def health(db: Annotated[Session, Depends(get_db)]):
-    try:
-        db.execute(text("SELECT 1"))
-    except SQLAlchemyError:
-        logger.exception("Health check could not reach the database")
-        return error_response(503, "SERVICE_UNAVAILABLE", "The database can't be reached.")
-    return {"status": "ok"}</code></pre>
-      <p><code>Depends(get_db)</code> is FastAPI's “dependency injection”: before running the function, FastAPI calls <code>get_db()</code> and passes in the session. Tests use this to swap in a broken database on purpose.</p>
-      <p>The error uses <code>error_response()</code> from <code>errors.py</code>, which produces the contract's shape: <code>{"error": {"code", "message", "details"}}</code>.</p>
+      <p><code>RequireJsonMiddleware</code> rejects any POST, PATCH or DELETE to <code>/api/</code> that isn't JSON with 415. A form on another website can't send JSON, so it can't trick your browser into changing your trips (CSRF).</p>
+      <p><code>install_error_handlers</code> turns every failure into the contract's shape <code>{"error": {"code", "message", "details"}}</code>: validation errors become 400 with one entry per field, unknown pages 404, a down database 503, and anything unexpected 500 without leaking details.</p>
     </div>
   </details>
 
   <details>
-    <summary>backend/alembic/: migrations</summary>
+    <summary>frontend/src/api/client.ts: the one place that talks to the backend</summary>
     <div class="det-body">
-      <p><code>env.py</code> tells Alembic which database to change: Neon's direct address on Vercel, Docker locally, or the test database during tests.</p>
-      <p><code>versions/0001_baseline.py</code> is intentionally empty. It gives the Vercel build a migration to run, so we can confirm migrations work before any real tables exist. Step 2 adds <code>0002</code> with the users, sessions, trips and activities tables.</p>
-<pre><code>uv run alembic upgrade head    # apply all migrations not yet applied
-uv run alembic current         # show which one the database is on (0001)</code></pre>
-    </div>
-  </details>
-
-  <details>
-    <summary>backend/tests/: how tests run</summary>
-    <div class="det-body">
-      <p><code>conftest.py</code> points the app at <code>planmytrip_test</code> (never your development data), then runs all migrations once before the tests.</p>
-      <p><code>test_health.py</code> checks three things: a healthy response, the 503 error when the database is unreachable, and a 404 for an unknown path.</p>
-    </div>
-  </details>
-
-  <details>
-    <summary>backend/docker-compose.yml: the local database</summary>
-    <div class="det-body">
-<pre><code>services:
-  db:
-    image: postgres:16
-    environment: { POSTGRES_USER: planmytrip, POSTGRES_PASSWORD: planmytrip, POSTGRES_DB: planmytrip }
-    ports: ["5432:5432"]
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro</code></pre>
-      <p>One PostgreSQL 16 container. Its data lives in a Docker “volume” (<code>pgdata</code>), so it survives restarts until you run <code>docker compose down -v</code>. The SQL file runs once, on first start, to create the test database. The password is only for your local machine.</p>
-    </div>
-  </details>
-
-  <details>
-    <summary>frontend/vite.config.ts: plugins and the proxy</summary>
-    <div class="det-body">
-<pre><code>plugins: [react(), tailwindcss()],
-server: {
-  proxy: { '/api': 'http://localhost:8000' },
-},</code></pre>
-      <p>The proxy makes the browser see one address in development, just like Vercel does in production. That's what will let the login cookie work later.</p>
-    </div>
-  </details>
-
-  <details>
-    <summary>frontend/src/styles.css: colors and font as tokens</summary>
-    <div class="det-body">
-<pre><code>@theme {
-  --color-sand: #f4ece1;
-  --color-primary: #1e3a5f;
-  --color-muted: #6b5e4e;
-  …
-  --font-sans: 'Fira Sans', system-ui, sans-serif;
+<pre><code>headers: method === 'GET' ? undefined : { 'Content-Type': 'application/json' },
+…
+if (!response.ok) {
+  throw new ApiError(response.status, error?.code ?? 'HTTP_ERROR', error?.message ?? …, details)
 }</code></pre>
-      <p>Defining colors in <code>@theme</code> creates Tailwind classes automatically: <code>bg-sand</code>, <code>text-primary</code>, <code>border-line</code>. Components use those names, never raw hex codes, so changing a color is one line.</p>
+      <p>Every non-2xx answer becomes an <code>ApiError</code> with the contract's <code>code</code>, so pages can react precisely: <code>USERNAME_TAKEN</code> under the username field, <code>ACTIVITIES_WOULD_BE_DELETED</code> reopens the warning, <code>UNAUTHORIZED</code> sends you to login (<code>queryClient.ts</code>).</p>
     </div>
   </details>
 
   <details>
-    <summary>frontend/src/App.tsx: the setup check page</summary>
+    <summary>frontend/src/hooks/useAuth.ts: start-up session check</summary>
     <div class="det-body">
-<pre><code>useEffect(() =&gt; {
-  fetch(`${API_BASE_URL}/health`)
-    .then(async (response) =&gt; {
-      if (response.ok) { setApi({ kind: 'ok' }); return }
-      const body = await response.json().catch(() =&gt; null)
-      setApi({ kind: 'error', message: body?.error?.message ?? `HTTP ${response.status}` })
-    })
-    .catch(() =&gt; setApi({ kind: 'error', message: "Can't reach the API." }))
-}, [])</code></pre>
-      <p>The state has three possible values: checking, ok, or error with a message. If the API returns the standard error, its <code>message</code> is shown. If the API can't be reached at all, a fixed message is shown. This page is temporary; Step 3 replaces it with the real app.</p>
+<pre><code>export async function loadSession() {
+  if (!hasTabLogin()) {                 // fresh visit after the page closed, or a new tab
+    await authApi.logout().catch(() =&gt; {})
+    return null
+  }
+  try { return await authApi.me() }     // a refresh: still logged in?
+  catch (error) { if (401) { clearTabLogin(); return null } throw error }
+}</code></pre>
+      <p>The result lives in the <code>['me']</code> query. <code>AppShell</code> (router.tsx) shows a spinner until it's known, then <code>ProtectedRoute</code> and <code>PublicOnlyRoute</code> decide where you may go.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>frontend/src/components/DayCard.tsx: one day of the plan</summary>
+    <div class="det-body">
+      <p>Shows “Day N” and its date, the day's activities sorted by <code>activitiesForDay</code> (timed first, then in the order added), an inline <code>ActivityForm</code> for adding or editing, and a <code>ConfirmDialog</code> before deleting. Each form passes <code>toPendingSave</code>, the request to send if the page closes before Save.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>frontend/src/lib/schemas.ts: the contract's rules in Zod</summary>
+    <div class="det-body">
+<pre><code>if (v.startDate !== originalStartDate &amp;&amp; v.startDate &lt; today) → "The start date can't be in the past."
+if (v.endDate &lt; v.startDate)                               → "The end date can't be before the start date."
+else if (getTripDuration(v.startDate, v.endDate) &gt; 14)     → "A trip can be at most 14 days long."</code></pre>
+      <p>Same rules and messages as the backend's Pydantic models. When editing, a trip that already started can keep its past start date.</p>
     </div>
   </details>
 
@@ -640,15 +655,39 @@ server: {
   { "source": "/api/(.*)", "destination": { "service": "backend" } },
   { "source": "/(.*)",     "destination": { "service": "frontend" } }
 ]</code></pre>
-      <p>The bottom <code>rewrites</code> decide which service gets each request. The frontend's own rewrite sends every page address to <code>index.html</code>, so React handles pages like <code>/trips/42</code>. The backend's <code>buildCommand</code> runs migrations during every deploy. Not yet tested on Vercel; that's the next step.</p>
+      <p>Not yet tested on Vercel; that's the next step. The backend's build runs migrations, so <code>0002</code> creates the tables on Neon automatically.</p>
     </div>
   </details>
 </section>
 
-<!-- 10 -->
+<!-- 11 -->
+<section id="tests">
+  <div class="section-head">
+    <h2>Tests and checks</h2>
+    <p>Run before every push. Two real bugs were caught by these tests before anyone used the app.</p>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Suite</th><th>Covers</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>Backend (pytest)</td><td>Signup/login/logout, cookie flags, sessions and idle timeout, trip rules (14 days, past dates, shortening), activities and sorting, all 7 endpoints for another user's data, JSON-only writes</td><td class="status-ok">45 passed</td></tr>
+        <tr><td>Frontend (Vitest)</td><td>Date math (incl. year and daylight-saving boundaries), sorting, PDF file names, all form rules, TripForm, DayCard, save-on-close registry, route guards, start-up session check, Edit Trip warning</td><td class="status-ok">42 passed</td></tr>
+        <tr><td>Lint and types</td><td>ruff, oxlint, TypeScript strict, production build</td><td class="status-ok">Passed</td></tr>
+        <tr><td>Smoke test</td><td>Real servers through the frontend's address: signup → trip → activity → logout</td><td class="status-ok">Passed</td></tr>
+        <tr><td>End-to-end (Playwright)</td><td>Full flow to PDF download, and close-to-logout with save-on-close, at desktop and 375px</td><td class="status-next">Written; needs browser system libraries (see What comes next)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>Bugs the tests caught</strong>
+    <p>The optional activity time was about to become a required column, and deleting a trip with activities crashed. Both were fixed before the first commit.</p>
+  </div>
+</section>
+
+<!-- 12 -->
 <section id="run">
   <div class="section-head">
-    <h2>Run and test it</h2>
+    <h2>Run it</h2>
     <p>From <code>/home/surabhi/Projects/PlanMyTrip</code>. Docker Desktop must be running.</p>
   </div>
 <pre><code># Terminal 1 – database
@@ -661,63 +700,56 @@ cd backend &amp;&amp; uv run alembic upgrade head &amp;&amp; uv run uvicorn app.
 cd frontend &amp;&amp; npm run dev</code></pre>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Open</th><th>Expect</th></tr></thead>
+      <thead><tr><th>Open</th><th>For</th></tr></thead>
       <tbody>
-        <tr><td class="mono">http://localhost:5173</td><td>“Welcome to PlanMyTrip” and “API: ok”</td></tr>
-        <tr><td class="mono">http://localhost:5173/api/v1/health</td><td><code>{"status":"ok"}</code> through the proxy</td></tr>
+        <tr><td class="mono">http://localhost:5173</td><td><strong>The app.</strong> Create an account, then add a trip</td></tr>
         <tr><td class="mono">http://localhost:8000/api/v1/docs</td><td>Interactive API docs</td></tr>
+        <tr><td class="mono">http://localhost:5173/api/v1/health</td><td>Quick “is everything connected?” check</td></tr>
       </tbody>
     </table>
   </div>
   <div class="grid-2">
     <div class="card">
-      <h3>Try breaking it</h3>
+      <h3>Things to try</h3>
       <ul>
-        <li>Stop the backend (Ctrl+C) and refresh: “Can't reach the API.”</li>
-        <li><code>docker compose stop db</code> and refresh: “The database can't be reached.” Start it again with <code>docker compose start db</code>.</li>
+        <li>Add a 5-day trip, add activities with and without times, click Print</li>
+        <li>Edit the trip to 3 days: you'll get the warning</li>
+        <li>Refresh: still logged in. Close the tab and reopen: asked to log in</li>
+        <li>Narrow the window to phone size: Print and Delete stick to the bottom</li>
       </ul>
     </div>
     <div class="card">
       <h3>Checks</h3>
       <ul>
-        <li><code>cd backend &amp;&amp; uv run pytest</code>: 3 tests</li>
-        <li><code>cd backend &amp;&amp; uv run ruff check .</code>: lint</li>
-        <li><code>cd frontend &amp;&amp; npm run build</code>: type check and build</li>
-        <li><code>cd frontend &amp;&amp; npm run lint</code>: oxlint</li>
+        <li><code>cd backend &amp;&amp; uv run pytest</code></li>
+        <li><code>cd backend &amp;&amp; uv run ruff check .</code></li>
+        <li><code>cd frontend &amp;&amp; npm test</code></li>
+        <li><code>cd frontend &amp;&amp; npm run build</code> and <code>npm run lint</code></li>
+        <li><code>cd frontend &amp;&amp; npm run e2e</code></li>
       </ul>
     </div>
   </div>
-  <div class="callout warn">
-    <strong>Docker is slow on this machine.</strong>
-    <p>The first database start took about 10 minutes because writes to disk were slow. Later starts reuse the saved image and data. If it stays slow, give Docker Desktop more memory or CPUs in its settings.</p>
-  </div>
 </section>
 
-<!-- 11 -->
+<!-- 13 -->
 <section id="next">
   <div class="section-head">
     <h2>What comes next</h2>
-    <p>The plan agreed in the backend spec and kept in your project notes.</p>
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Step</th><th>What</th><th>Status</th></tr></thead>
+      <thead><tr><th>Step</th><th>What</th><th>Who</th></tr></thead>
       <tbody>
-        <tr><td>Setup check: Vercel</td><td>You create a Vercel account and import the repo, then add Neon with preview branching on. Check that migrations run in the build, previews get their own database branch, and the page's files load. Then merge <code>setup-check</code>.</td><td class="status-next">Next</td></tr>
-        <tr><td>2. Backend</td><td>Tables, signup/login/logout and sessions, trips, activities, and tests that user B can't see user A's trips</td><td>Planned</td></tr>
-        <tr><td>3. Frontend foundation</td><td>Layouts, router, API helper, signup and login pages, logout when the page closes</td><td>Planned</td></tr>
-        <tr><td>4. Frontend features</td><td>My Trips, New Trip, Trip Page, Edit Trip (with the shortening warning)</td><td>Planned</td></tr>
-        <tr><td>5. Finish</td><td>Print PDF, save on close, mobile and accessibility checks, end-to-end tests, success metrics</td><td>Planned</td></tr>
+        <tr><td>Browser tests</td><td>Install Chromium's system libraries once: <code>cd frontend &amp;&amp; sudo npx playwright install-deps chromium</code>, then <code>npm run e2e</code></td><td>You (needs your password)</td></tr>
+        <tr><td>Connect Vercel</td><td>Create a Vercel account, import the repo, add Neon with preview branching on. Check that migrations run in the build, previews get their own database, and the page's files load</td><td>You, guided</td></tr>
+        <tr><td>Go live</td><td>Pushes to <code>main</code> deploy to production; check the success metrics (signup to PDF in under 5 minutes, works at 375px)</td><td>Together</td></tr>
+        <tr><td>Future work</td><td>From the goal spec: email login, past trips, multiple destinations, sharing, limiting failed logins, dark mode</td><td>Later</td></tr>
       </tbody>
     </table>
   </div>
-  <div class="callout">
-    <strong>Open item:</strong>
-    <p>The frontend spec says ESLint + Prettier, but Vite's template ships <strong>oxlint</strong>. We kept oxlint for now; decide whether to switch or update the spec.</p>
-  </div>
 </section>
 
-<!-- 12 -->
+<!-- 14 -->
 <section id="glossary">
   <div class="section-head">
     <h2>Glossary</h2>
@@ -727,24 +759,26 @@ cd frontend &amp;&amp; npm run dev</code></pre>
     <table>
       <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
       <tbody>
-        <tr><td>API</td><td>The set of URLs the backend answers, like <code>/api/v1/health</code>. The frontend uses it to read and save data.</td></tr>
-        <tr><td>Endpoint</td><td>One URL plus method, e.g. <code>GET /api/v1/trips</code>.</td></tr>
+        <tr><td>API / endpoint</td><td>The URLs the backend answers, like <code>POST /api/v1/trips</code>. One URL plus method is an endpoint.</td></tr>
         <tr><td>JSON</td><td>The text format for data sent between frontend and backend: <code>{"status": "ok"}</code>.</td></tr>
-        <tr><td>HTTP status</td><td>A number with each response: 200 ok, 201 created, 400 bad input, 401 not logged in, 404 not found, 503 unavailable.</td></tr>
-        <tr><td>Proxy</td><td>Something that receives a request and forwards it elsewhere. Vite's proxy forwards <code>/api</code> to port 8000.</td></tr>
-        <tr><td>Port</td><td>A numbered “door” on a computer: 5173 frontend, 8000 backend, 5432 database.</td></tr>
-        <tr><td>Environment variable</td><td>A setting given to a program from outside its code, such as <code>DATABASE_URL</code>. Keeps secrets out of git.</td></tr>
-        <tr><td>Migration</td><td>A versioned script that creates or changes database tables, applied in order by Alembic.</td></tr>
-        <tr><td>ORM</td><td>A library (SQLAlchemy) that lets Python code work with database rows as objects.</td></tr>
-        <tr><td>Container</td><td>A sealed, disposable box running one program (here PostgreSQL), managed by Docker.</td></tr>
-        <tr><td>Virtual environment</td><td>A private folder of Python packages for this project (<code>backend/.venv</code>), managed by uv.</td></tr>
-        <tr><td>Lock file</td><td>The exact version of every package (<code>uv.lock</code>, <code>package-lock.json</code>), so every machine installs the same code.</td></tr>
-        <tr><td>Serverless function</td><td>Code the host starts only when a request arrives. The backend runs this way on Vercel.</td></tr>
-        <tr><td>Preview deployment</td><td>A temporary copy of the app Vercel builds for each branch, with its own URL and, with Neon, its own database copy.</td></tr>
+        <tr><td>HTTP status</td><td>A number with each response: 200 ok, 201 created, 204 done (no body), 400 bad input, 401 not logged in, 404 not found, 409 conflict, 415 wrong format, 503 unavailable.</td></tr>
+        <tr><td>Proxy</td><td>Something that forwards requests elsewhere. Vite's proxy forwards <code>/api</code> to port 8000.</td></tr>
+        <tr><td>Environment variable</td><td>A setting given from outside the code, such as <code>DATABASE_URL</code>. Keeps secrets out of git.</td></tr>
+        <tr><td>Migration</td><td>A versioned script that creates or changes tables, applied in order by Alembic.</td></tr>
+        <tr><td>ORM</td><td>A library (SQLAlchemy) that lets Python work with rows as objects.</td></tr>
+        <tr><td>Transaction</td><td>A group of database changes that all succeed or all fail together.</td></tr>
+        <tr><td>Hash</td><td>A one-way scramble: easy to compute, impossible to reverse. Used for passwords (Argon2id) and session tokens (SHA-256).</td></tr>
         <tr><td>Session cookie</td><td>A small value the browser sends automatically to prove you're logged in. <code>httpOnly</code> means page scripts can't read it.</td></tr>
-        <tr><td>Branch</td><td>A separate line of work in git. <code>setup-check</code> holds the hello-world code until it's merged into <code>main</code>.</td></tr>
+        <tr><td>sessionStorage</td><td>Browser storage that belongs to one tab: kept on refresh, wiped when the tab closes.</td></tr>
+        <tr><td>CSRF</td><td>Another website tricking your browser into sending a request to ours. Blocked by <code>SameSite=Lax</code> and JSON-only writes.</td></tr>
+        <tr><td>XSS</td><td>Someone's script running on our page. React shows text as text, and the cookie is out of scripts' reach anyway.</td></tr>
+        <tr><td>Container</td><td>A sealed, disposable box running one program (here PostgreSQL), managed by Docker.</td></tr>
+        <tr><td>Virtual environment / lock file</td><td>A private folder of Python packages (<code>.venv</code>), and the exact versions of every package (<code>uv.lock</code>, <code>package-lock.json</code>).</td></tr>
+        <tr><td>Serverless function</td><td>Code the host starts only when a request arrives. The backend runs this way on Vercel.</td></tr>
+        <tr><td>Preview deployment</td><td>A temporary copy of the app for each branch, with its own URL and database copy.</td></tr>
+        <tr><td>Mock (MSW)</td><td>A stand-in for the real backend during tests, answering with fixed data.</td></tr>
         <tr><td>Lint</td><td>Automatic checks for likely bugs and style problems (ruff, oxlint).</td></tr>
-        <tr><td>Dependency injection</td><td>FastAPI's <code>Depends(...)</code>: it prepares what a function needs (like a database session) and passes it in.</td></tr>
+        <tr><td>Dependency injection</td><td>FastAPI's <code>Depends(...)</code>: it prepares what a function needs (database session, current user) and passes it in.</td></tr>
       </tbody>
     </table>
   </div>

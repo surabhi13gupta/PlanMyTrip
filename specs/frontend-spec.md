@@ -22,7 +22,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - Notifications: `sonner` (toasts)
 - Testing: Vitest + React Testing Library + MSW (to mock the API); Playwright for end-to-end tests
 - Build tool: Vite
-- Linting / formatting: ESLint + Prettier
+- Linting / formatting: oxlint (ships with Vite's React template; much faster than ESLint, with React, hooks and accessibility rules built in). No separate formatter in the MVP; keep the existing code style.
 
 ## 3. Pages / Routes
 | Route | Page | Auth Required | Description | Story |
@@ -315,6 +315,7 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 ### Resolved
 | Question | Decision |
 |----------|----------|
+| ESLint + Prettier, or oxlint? | **oxlint**, which came with Vite's template (section 2) |
 | Are activities tied to a calendar date or a day number? | **Day number.** Moving a trip's dates moves its plan with it; shortening a trip removes the last days (after the warning) |
 | Session cookie or Bearer token? | **`httpOnly` session cookie** (section 8). The API contract uses the `session` cookie, with no `Authorization` header |
 | Can a trip start in the past? | **No, not in the MVP.** The start date must be today or later; recording past trips is future work (see goal spec) |
