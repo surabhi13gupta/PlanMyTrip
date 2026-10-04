@@ -46,7 +46,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ### 4.1 Signup
 - **Route:** `/signup`
 - **Purpose:** Create an account (US1).
-- **Layout / sections:** A centered card with the app name, the signup form, and a link: "Already have an account? Log in".
+- **Layout / sections:** The mountain banner with the logo at the top (section 10.1). Below it, directly on the light brown page (**no white card around the form**): the heading "Create an account", the signup form, and a link: "Already have an account? Log in". The column is centered and at most `max-w-md` wide.
 - **Components used:** `AuthLayout`, `SignupForm`
 - **Data needed (API calls):** `POST /auth/signup`
 - **User interactions:** Fill in username, password, and confirm password, then submit. On success, the user is logged in and taken to `/trips`.
@@ -55,7 +55,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ### 4.2 Login
 - **Route:** `/login`
 - **Purpose:** Log in (US2).
-- **Layout / sections:** The same card layout as Signup, with a link: "New here? Create an account".
+- **Layout / sections:** The same layout as Signup: the mountain banner with the logo, then the heading "Log in" and the form directly on the light brown page, with no white card around it. Below the form, a link: "New here? Create an account".
 - **Components used:** `AuthLayout`, `LoginForm`
 - **Data needed (API calls):** `POST /auth/login`
 - **User interactions:** Fill in username and password, then submit. On success, go to the `redirect` path, or to `/trips` if there is none.
@@ -118,13 +118,15 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ### 4.7 Not Found
 - **Route:** `*`
 - **Purpose:** Handle unknown or inaccessible URLs.
-- **Layout / sections:** A "Page not found" message with a link to My Trips.
+- **Layout / sections:** The mountain banner, then a "Page not found" message with a link to My Trips.
 
 ## 5. Component Inventory
 | Component | Responsibility | Props | Used In |
 |-----------|----------------|-------|---------|
-| `AppLayout` | Page frame with header (app name links to `/trips`, username, Log out) and content area | `children` | All logged-in pages |
-| `AuthLayout` | Centered card layout for auth pages | `title`, `children` | Signup, Login |
+| `AppLayout` | Page frame: `SiteBanner` (with username and Log out on the right) above the content area | `children` | All logged-in pages |
+| `AuthLayout` | `SiteBanner`, then a centered column (no card) with the page heading and form | `title`, `children` | Signup, Login |
+| `SiteBanner` | The mountain image across the top of every page, with the logo top left and optional content top right (section 10.1) | `children?` (right side) | `AppLayout`, `AuthLayout`, Not Found |
+| `Logo` | The PlanMyTrip logo: map-pin mark + wordmark, as inline SVG; links home | `variant` (`onImage` / `onLight`) | `SiteBanner` |
 | `ProtectedRoute` | Redirects to `/login` if the user isn't logged in | `children` | Router |
 | `PublicOnlyRoute` | Redirects to `/trips` if the user is logged in | `children` | Router |
 | `SignupForm` / `LoginForm` | Auth forms with validation and error display | `onSuccess` | Signup, Login |
@@ -227,17 +229,45 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 
   - Main buttons are `primary` with white text. Secondary buttons are white with a `primary` border and text.
   - **Contrast checks (WCAG AA):** `primary` on white 11.5:1, on `sand` 9.8:1; `muted` on white 6.3:1, on `sand` 5.4:1; `field-border` on white 4.1:1 (form borders need at least 3:1); `danger` on white 6.5:1. `line` is used only for decoration, never as the only way to see a control.
-- **Typography:** Fira Sans, self-hosted through the `@fontsource/fira-sans` npm package (no request to Google Fonts), in weights 400 (body), 500 (labels, buttons), and 600 (headings). Fallback: `system-ui, sans-serif`. Base text 16px, so mobile browsers don't zoom into form fields. Headings use `text-2xl` and `text-xl` with `font-semibold` in `primary`.
+- **Typography:** Fira Sans (the logo's cursive "My" uses Dancing Script, section 10.1), self-hosted through the `@fontsource/fira-sans` npm package (no request to Google Fonts), in weights 400 (body), 500 (labels, buttons), and 600 (headings). Fallback: `system-ui, sans-serif`. Base text 16px, so mobile browsers don't zoom into form fields. Headings use `text-2xl` and `text-xl` with `font-semibold` in `primary`.
 - **Spacing / grid:** Tailwind's spacing scale. Page content is centered at most `max-w-5xl`; forms are at most `max-w-xl`. Side padding is 16px on mobile and 24px on desktop.
 - **Light / dark mode:** Light only in the MVP. Dark mode is a post-MVP item.
 - **Responsive breakpoints:** Built mobile-first with Tailwind's default breakpoints (`sm` 640px, `md` 768px, `lg` 1024px). Every screen must work at 375px wide with no sideways scrolling, except the day chips, which scroll sideways on purpose.
 - **Touch targets:** At least 44×44px on mobile.
 
+### 10.1 Mountain banner and logo
+Every page starts with the same banner: a mountain photo across the top, with the logo in its top-left corner. Only the top of the page shows the photo; everything below stays on the light brown (`sand`) background.
+
+**Banner (`SiteBanner`)**
+- **Pages:** all of them: Login, Signup, My Trips, New Trip, Trip Page, Edit Trip, and Not Found. (Not the PDF, and not the crash fallback page.)
+- **Image:** `frontend/src/assets/header-mountains.jpg`: a wooden hut in a green meadow below jagged, snow-capped peaks at Seiser Alm in the Dolomites, Italy.
+  - **Source and license:** photo by Lukas Leitner on Unsplash (https://unsplash.com/photos/epDtXfC8ipI), under the Unsplash License: free to use in apps and websites, no permission needed. Credit isn't required, but the README credits the photographer.
+  - **Prepared file:** the 6000×4000 original, cropped to the banner's wide shape (keeping the sky, peaks and hut; dropping most of the blurred flowers in the foreground) and resized to **1920×819 px**, JPEG, about **230 KB**.
+  - Replaces `images/mountains.jpg`, which was too small (700×350) and came through a Bing search with unclear rights. The `images/` folder is removed when this is implemented.
+- **Size:** full window width, edge to edge. Height: 200px on phones, 260px from `sm` (640px), 300px from `lg` (1024px). The image fills the banner without stretching (`object-fit: cover`), positioned a little below middle (`object-position: center 60%`), so both the peaks and the hut stay visible at every width.
+- **Readable text on the photo:** a dark blue gradient across the top of the banner, from `primary` at 55% opacity to fully transparent at about 60% of the banner's height. White text and the logo sit on it with at least 4.5:1 contrast.
+- **Top bar inside the banner:** the logo on the left. On logged-in pages, the username and a "Log out" button on the right, in white. (This replaces the white header bar.) On Login, Signup, and Not Found, the right side is empty.
+  - **Always one line:** the logo, the username, and "Log out" never wrap onto a second line, at any width down to 375px. Neither the logo nor "Log out" shrinks or wraps (`white-space: nowrap`, no shrinking). If space runs out, only the **username** gives way: it's cut short with "…" (at most about 8rem wide on phones, 16rem from `sm`), and its full text is available as a tooltip and to screen readers.
+- **Scrolling:** the banner scrolls away with the page; it doesn't stay pinned. The mobile Print/Delete bar on the Trip Page is unchanged.
+- **Page content** starts below the banner, as before (page headings such as "Welcome to PlanMyTrip" and "Plan a new trip" stay below it, on the light brown background).
+
+**Logo (`Logo`)**
+- **Mark:** a map pin (a place to go) with a two-peak mountain inside it (the trip), echoing the banner photo.
+- **Wordmark:** "Plan*My*Trip" next to the mark: "Plan" in Fira Sans weight 500, **"My" in a handwritten (cursive) font, Dancing Script weight 700**, set about 1.3× larger so it reads at the same size as the other letters, and "Trip" in Fira Sans weight 600.
+- **Script font:** Dancing Script, self-hosted through the `@fontsource/dancing-script` npm package (like Fira Sans, no request to Google Fonts), loaded in weight 700 only and used **only for "My" in the logo**. Fallback: `cursive`.
+- **Two versions:**
+  - `onImage` (in the banner): white pin with `primary` mountains inside, white wordmark.
+  - `onLight` (for light backgrounds, e.g. the browser tab icon): `primary` pin with white mountains inside, `primary` wordmark.
+- **Size:** the map-pin mark is 42px tall on phones and 48px from `sm`; the wordmark is about 1.3rem on phones and 1.45rem from `sm`. The link around the logo is at least 44px tall.
+- **Built as** inline SVG in `components/Logo.tsx` (no image file), so it's sharp at every size. The mark alone, `onLight`, also replaces Vite's default browser-tab icon (`frontend/public/favicon.svg`).
+- **Link:** goes to `/trips` when logged in, `/login` when not.
+
 ## 11. Accessibility
 - **Target standard:** WCAG 2.1 AA
 - **Keyboard navigation:** Everything works by keyboard. Focus is always visible (`focus-visible` rings). Dialogs keep focus inside while open and give it back afterwards; the native `<dialog>` does this. Escape closes dialogs and inline forms.
 - **Screen reader considerations:** Every input has a `<label>`. Field errors are linked with `aria-describedby`. Icon-only buttons have an `aria-label` (e.g. "Edit Visit the Louvre"). Each page has one `<h1>`, and each day uses `<h2>`. Toasts are announced through a live region.
-- **Color:** Text contrast is at least 4.5:1. Errors are never shown by color alone.
+- **Color:** Text contrast is at least 4.5:1. Errors are never shown by color alone. White text on the banner relies on the gradient (section 10.1) for its contrast.
+- **Banner and logo:** The banner photo is decorative: an `<img>` with empty `alt=""`, so screen readers skip it. The logo link's accessible name is "PlanMyTrip, home"; the SVG mark itself is hidden from screen readers. On Login and Signup, the form sits directly on the `sand` background: input borders (`field-border`) still meet the 3:1 minimum against it (3.5:1).
 
 ## 12. Error Handling & Notifications
 - **API error display:** The API client turns non-2xx responses into an `ApiError` with `status`, `code`, `message`, and `details` (the error format in [api-contract-spec.md](./api-contract-spec.md#2-standard-error-response)).
@@ -258,7 +288,7 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 
 ## 13. Performance
 - **Code splitting / lazy loading:** `@react-pdf/renderer` is loaded with `import()` only when the user clicks Print, keeping it out of the initial bundle. Pages are lazy-loaded per route.
-- **Image optimization:** No images in the MVP. Icons are inline SVG.
+- **Image optimization:** The banner photo is the only image. It's imported through Vite (fingerprinted, cached long-term), given its width and height so the page doesn't jump while it loads, and marked `fetchpriority="high"`, since it's the largest thing on screen (it decides LCP). It must stay under 250 KB. Icons and the logo are inline SVG.
 - **Targets:** Initial JavaScript ≤ 200 KB gzipped (not counting the PDF library). LCP < 2.5s on simulated 4G.
 
 ## 14. Testing Strategy
@@ -275,6 +305,8 @@ frontend/                 # vercel.json lives at the repository root (see backen
   src/
     main.tsx              # React root, QueryClientProvider, Toaster
     styles.css            # Tailwind import, @theme color tokens, Fira Sans
+    assets/
+      header-mountains.jpg  # the banner photo (section 10.1)
     router.tsx            # routes + ProtectedRoute / PublicOnlyRoute
     api/
       client.ts           # fetch wrapper, ApiError, credentials: 'include',
@@ -315,6 +347,8 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 ### Resolved
 | Question | Decision |
 |----------|----------|
+| Banner photo: the 700×350 `mountains.jpg`, or a larger one? | **Seiser Alm photo by Lukas Leitner (Unsplash)**, 1920×819, free to use (section 10.1). Chosen over a Norway cabin from Pexels as the closest match to the original |
+| Login form: inside a white box or not? | **Not:** the form sits directly on the light brown page below the banner (sections 4.1–4.2) |
 | ESLint + Prettier, or oxlint? | **oxlint**, which came with Vite's template (section 2) |
 | Are activities tied to a calendar date or a day number? | **Day number.** Moving a trip's dates moves its plan with it; shortening a trip removes the last days (after the warning) |
 | Session cookie or Bearer token? | **`httpOnly` session cookie** (section 8). The API contract uses the `session` cookie, with no `Authorization` header |

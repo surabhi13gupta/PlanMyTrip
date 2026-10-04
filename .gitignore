@@ -19,3 +19,6 @@ node_modules/
 # Editors / OS
 .idea/
 .DS_Store
+
+# Windows download metadata (created when copying downloaded files into WSL)
+*:Zone.Identifier
