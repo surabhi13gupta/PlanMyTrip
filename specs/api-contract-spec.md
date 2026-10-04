@@ -58,10 +58,11 @@ Fields marked `| null` are always present in responses, with the value `null` wh
 {
   "id": "3f6c2a9e-8d1b-4e2f-9a7c-5b0d1e2f3a4b",
   "username": "surabhi",
+  "name": "Surabhi Gupta",
   "createdAt": "2026-10-04T14:30:00Z"
 }
 ```
-`username` is always lowercase.
+`username` is always lowercase. `name` is shown exactly as the user typed it (trimmed); it is always a non-empty string. Accounts created before names existed got their username as their name (see [backend-spec.md §4.1](./backend-spec.md#41-users)).
 
 ### TripType
 One of: `"solo"`, `"couple"`, `"family"`, `"friends"`.
@@ -142,6 +143,7 @@ Both the frontend (Zod) and the backend (Pydantic + services) enforce these rule
 |-------|------|-----------------|
 | `username` (signup) | 3–30 characters; only letters, numbers, and `_` (`^[A-Za-z0-9_]{3,30}$`). Stored in lowercase | "Use 3–30 letters, numbers, or underscores." |
 | `password` (signup) | 8–72 characters | "Password must be 8–72 characters." |
+| `name` (signup) | Required; 1–50 characters after trimming; any letters, spaces, and punctuation (names in any language) | "Enter your name." |
 | `username`, `password` (login) | Required (not empty). No other rules, so login gives no hints | "Enter your username." |
 | `destination` | Required; 1–100 characters after trimming | "Enter a destination." |
 | `startDate` | Required; a valid date. Must not be before today (see note). On update, only checked if `startDate` changes | "The start date can't be in the past." |
@@ -185,16 +187,17 @@ All paths are relative to `/api/v1`. There is no PDF endpoint: the PDF is built 
 **Request body**
 ```json
 {
+  "name": "Surabhi Gupta",
   "username": "Surabhi",
   "password": "correct-horse-42"
 }
 ```
-(The frontend's "confirm password" field is checked in the browser only and is not sent.)
+All three fields are required. (The frontend's "confirm password" field is checked in the browser only and is not sent.)
 
 **Success response** — `201 Created`
 ```json
 {
-  "user": { "id": "3f6c2a9e-8d1b-4e2f-9a7c-5b0d1e2f3a4b", "username": "surabhi", "createdAt": "2026-10-04T14:30:00Z" }
+  "user": { "id": "3f6c2a9e-8d1b-4e2f-9a7c-5b0d1e2f3a4b", "username": "surabhi", "name": "Surabhi Gupta", "createdAt": "2026-10-04T14:30:00Z" }
 }
 ```
 Header: `Set-Cookie: session=<token>; HttpOnly; Secure; SameSite=Lax; Path=/` (no `Max-Age`, so the browser deletes it when it closes; `Secure` is left out in local development.)
@@ -220,7 +223,7 @@ Header: `Set-Cookie: session=<token>; HttpOnly; Secure; SameSite=Lax; Path=/` (n
 **Success response** — `200 OK`
 ```json
 {
-  "user": { "id": "3f6c2a9e-8d1b-4e2f-9a7c-5b0d1e2f3a4b", "username": "surabhi", "createdAt": "2026-10-04T14:30:00Z" }
+  "user": { "id": "3f6c2a9e-8d1b-4e2f-9a7c-5b0d1e2f3a4b", "username": "surabhi", "name": "Surabhi Gupta", "createdAt": "2026-10-04T14:30:00Z" }
 }
 ```
 Header: `Set-Cookie: session=<token>; ...` (same as signup)
@@ -246,7 +249,7 @@ Header: `Set-Cookie: session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0
 **Success response** — `200 OK`
 ```json
 {
-  "user": { "id": "3f6c2a9e-8d1b-4e2f-9a7c-5b0d1e2f3a4b", "username": "surabhi", "createdAt": "2026-10-04T14:30:00Z" }
+  "user": { "id": "3f6c2a9e-8d1b-4e2f-9a7c-5b0d1e2f3a4b", "username": "surabhi", "name": "Surabhi Gupta", "createdAt": "2026-10-04T14:30:00Z" }
 }
 ```
 
@@ -466,3 +469,4 @@ The updated `Activity`.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-10-04 | v1 | Initial contract: auth, trips, activities, health |
+| 2026-10-05 | v1 | Signup requires `name`; `User` includes `name`. Kept as v1: the app isn't released yet, and the frontend and backend change together |

@@ -49,7 +49,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Layout / sections:** The mountain banner with the logo at the top (section 10.1). Below it, directly on the light brown page (**no white card around the form**): the heading "Create an account", the signup form, and a link: "Already have an account? Log in". The column is centered and at most `max-w-md` wide.
 - **Components used:** `AuthLayout`, `SignupForm`
 - **Data needed (API calls):** `POST /auth/signup`
-- **User interactions:** Fill in username, password, and confirm password, then submit. On success, the user is logged in and taken to `/trips`.
+- **User interactions:** Fill in name, username, password, and confirm password (in that order), then submit. On success, the user is logged in and taken to `/trips`.
 - **Loading / empty / error states:** The submit button is disabled and shows a spinner while the request runs. If the username is taken (409), the error appears under the username field. Other errors appear above the form.
 
 ### 4.2 Login
@@ -65,7 +65,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Route:** `/trips`
 - **Purpose:** The first screen after logging in: see all trips and open one, or start a new one (US4).
 - **Layout / sections** (follows the "First screen" sketch):
-  1. A welcome heading: "Welcome to PlanMyTrip"
+  1. A welcome heading with the user's name: **"Surabhi, welcome to PlanMyTrip"**. "PlanMyTrip" is drawn with the same `Wordmark` as the logo ("Plan", handwritten "My", "Trip"), in `primary`, at the heading's size, so the brand looks the same everywhere. A long name wraps naturally.
   2. An **"Add new trip"** button (main button)
   3. A **"Your trip plans"** section listing trip cards. Each card shows the **destination** as its title, the **dates** below it ("Oct 10 – Oct 14, 2026 · 5 days"), and a Trip Type badge. One column on mobile, two to three columns on wider screens.
 - **Components used:** `AppLayout`, `TripCard`, `EmptyState`
@@ -123,10 +123,11 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ## 5. Component Inventory
 | Component | Responsibility | Props | Used In |
 |-----------|----------------|-------|---------|
-| `AppLayout` | Page frame: `SiteBanner` (with username and Log out on the right) above the content area | `children` | All logged-in pages |
+| `AppLayout` | Page frame: `SiteBanner` (with the user's name and Log out on the right) above the content area | `children` | All logged-in pages |
 | `AuthLayout` | `SiteBanner`, then a centered column (no card) with the page heading and form | `title`, `children` | Signup, Login |
 | `SiteBanner` | The mountain image across the top of every page, with the logo top left and optional content top right (section 10.1) | `children?` (right side) | `AppLayout`, `AuthLayout`, Not Found |
-| `Logo` | The PlanMyTrip logo: map-pin mark + wordmark, as inline SVG; links home | `variant` (`onImage` / `onLight`) | `SiteBanner` |
+| `Logo` | The PlanMyTrip logo: map-pin mark + `Wordmark`, as inline SVG; links home | `variant` (`onImage` / `onLight`) | `SiteBanner` |
+| `Wordmark` | "Plan*My*Trip" with the handwritten "My"; inherits size and color from where it's placed | — | `Logo`, the My Trips welcome heading |
 | `ProtectedRoute` | Redirects to `/login` if the user isn't logged in | `children` | Router |
 | `PublicOnlyRoute` | Redirects to `/trips` if the user is logged in | `children` | Router |
 | `SignupForm` / `LoginForm` | Auth forms with validation and error display | `onSuccess` | Signup, Login |
@@ -158,7 +159,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ## 7. User Flows
 1. **First-time user**
    1. Opens `/` → redirected to `/login` → clicks "Create an account"
-   2. Signs up → lands on My Trips ("Welcome to PlanMyTrip") and sees the empty state
+   2. Signs up with name, username, and password → lands on My Trips ("Surabhi, welcome to PlanMyTrip") and sees the empty state
    3. Clicks "Add new trip" → picks From and To dates, enters the destination and Trip Type → clicks "Plan" → lands on the new trip's page with Day 1 … Day N
 2. **Planning a day**
    1. On the Trip Page, taps "Day 2" in the day chips → page scrolls to Day 2
@@ -201,7 +202,7 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 
 | Form | Fields | Validation Rules |
 |------|--------|------------------|
-| Signup | username, password, confirmPassword | username: required, 3–30 characters, only letters, numbers, and `_`; case-insensitive ("Surabhi" and "surabhi" are the same account; the backend stores it in lowercase). password: required, 8–72 characters. confirmPassword: must match password |
+| Signup | name, username, password, confirmPassword | name: required, 1–50 characters, trimmed; any letters, spaces, and punctuation ("Enter your name."). username: required, 3–30 characters, only letters, numbers, and `_`; case-insensitive ("Surabhi" and "surabhi" are the same account; the backend stores it in lowercase). password: required, 8–72 characters. confirmPassword: must match password |
 | Login | username, password | Both required (no other rules, so the form gives no hints about valid usernames) |
 | Trip (create/edit) | startDate (From), endDate (To), destination, tripType | destination: required, 1–100 characters, trimmed. startDate, endDate: required, valid dates. startDate ≥ today (the user's local date) when creating; when editing, only if the start date was changed, so a trip that has already started can still be edited. endDate ≥ startDate. Trip length (both dates counted) ≤ 14 days. tripType: one of `solo`, `couple`, `family`, `friends` |
 | Activity | title, time, notes | title: required, 1–100 characters, trimmed. time: optional, `HH:mm` (24-hour). notes: optional, ≤ 500 characters |
@@ -240,16 +241,16 @@ Every page starts with the same banner: a mountain photo across the top, with th
 
 **Banner (`SiteBanner`)**
 - **Pages:** all of them: Login, Signup, My Trips, New Trip, Trip Page, Edit Trip, and Not Found. (Not the PDF, and not the crash fallback page.)
-- **Image:** `frontend/src/assets/header-mountains.jpg`: a wooden hut in a green meadow below jagged, snow-capped peaks at Seiser Alm in the Dolomites, Italy.
-  - **Source and license:** photo by Lukas Leitner on Unsplash (https://unsplash.com/photos/epDtXfC8ipI), under the Unsplash License: free to use in apps and websites, no permission needed. Credit isn't required, but the README credits the photographer.
-  - **Prepared file:** the 6000×4000 original, cropped to the banner's wide shape (keeping the sky, peaks and hut; dropping most of the blurred flowers in the foreground) and resized to **1920×819 px**, JPEG, about **230 KB**.
-  - Replaces `images/mountains.jpg`, which was too small (700×350) and came through a Bing search with unclear rights. The `images/` folder is removed when this is implemented.
-- **Size:** full window width, edge to edge. Height: 200px on phones, 260px from `sm` (640px), 300px from `lg` (1024px). The image fills the banner without stretching (`object-fit: cover`), positioned a little below middle (`object-position: center 60%`), so both the peaks and the hut stay visible at every width.
+- **Image:** `frontend/src/assets/header-mountains.jpg`: snow-capped Mount Fuji, Japan, with the red Chureito Pagoda on the right, framed by pine branches.
+  - **Source and license:** photo by Tomáš Malík on Pexels (https://www.pexels.com/photo/3408354/), under the Pexels License: free to use in apps and websites, no permission needed. Credit isn't required, but the README credits the photographer.
+  - **Prepared file:** the 5919×3946 original, cropped to the banner's wide shape (trimming empty sky at the top and the bottom edge) and resized to **1920×973 px**, JPEG, about **234 KB**.
+  - Replaces the earlier Seiser Alm photo (Lukas Leitner, Unsplash), chosen from four candidates in the preview. The large originals uploaded for comparison (`option1.jpg`–`option3.jpg`, 3–5 MB each) are deleted when this is implemented; only the prepared file is kept.
+- **Size:** full window width, edge to edge. Height: **260px on phones, 340px from `sm` (640px), 420px from `lg` (1024px)** (taller than the first version, at your request). The image fills the banner without stretching (`object-fit: cover`), positioned slightly left of center and a little below middle (`object-position: 45% 60%`), so Mount Fuji stays in view on narrow phones and the pagoda shows beside it on wider screens.
 - **Readable text on the photo:** a dark blue gradient across the top of the banner, from `primary` at 55% opacity to fully transparent at about 60% of the banner's height. White text and the logo sit on it with at least 4.5:1 contrast.
-- **Top bar inside the banner:** the logo on the left. On logged-in pages, the username and a "Log out" button on the right, in white. (This replaces the white header bar.) On Login, Signup, and Not Found, the right side is empty.
-  - **Always one line:** the logo, the username, and "Log out" never wrap onto a second line, at any width down to 375px. Neither the logo nor "Log out" shrinks or wraps (`white-space: nowrap`, no shrinking). If space runs out, only the **username** gives way: it's cut short with "…" (at most about 8rem wide on phones, 16rem from `sm`), and its full text is available as a tooltip and to screen readers.
+- **Top bar inside the banner:** the logo on the left. On logged-in pages, the user's **name** (e.g. "Surabhi Gupta", not the username) and a "Log out" button on the right, in white. (This replaces the white header bar.) On Login, Signup, and Not Found, the right side is empty.
+  - **Always one line:** the logo, the name, and "Log out" never wrap onto a second line, at any width down to 375px. Neither the logo nor "Log out" shrinks or wraps (`white-space: nowrap`, no shrinking). If space runs out, only the **name** gives way: it's cut short with "…" (at most about 8rem wide on phones, 16rem from `sm`), and its full text is available as a tooltip and to screen readers.
 - **Scrolling:** the banner scrolls away with the page; it doesn't stay pinned. The mobile Print/Delete bar on the Trip Page is unchanged.
-- **Page content** starts below the banner, as before (page headings such as "Welcome to PlanMyTrip" and "Plan a new trip" stay below it, on the light brown background).
+- **Page content** starts below the banner, as before (page headings such as "Surabhi, welcome to PlanMyTrip" and "Plan a new trip" stay below it, on the light brown background).
 
 **Logo (`Logo`)**
 - **Mark:** a map pin (a place to go) with a two-peak mountain inside it (the trip), echoing the banner photo.
@@ -347,7 +348,11 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 ### Resolved
 | Question | Decision |
 |----------|----------|
-| Banner photo: the 700×350 `mountains.jpg`, or a larger one? | **Seiser Alm photo by Lukas Leitner (Unsplash)**, 1920×819, free to use (section 10.1). Chosen over a Norway cabin from Pexels as the closest match to the original |
+| Banner photo: the 700×350 `mountains.jpg`, or a larger one? | First the Seiser Alm photo (Unsplash); then **Mount Fuji with the Chureito Pagoda by Tomáš Malík (Pexels)**, 1920×973, chosen from four candidates (section 10.1) |
+| Banner height? | Taller: 260 / 340 / 420px on phones / tablets / laptops (section 10.1) |
+| Name or username in the banner? | **Name** ("Surabhi Gupta"), shortened with "…" if long (section 10.1) |
+| Should the welcome heading match the logo? | **Yes:** "PlanMyTrip" in the heading uses the logo's `Wordmark`, handwritten "My" included |
+| Ask for a name at signup? | **Yes:** required, 1–50 characters; My Trips greets the user by name. Existing accounts get their username as their name (backend-spec §4.1) |
 | Login form: inside a white box or not? | **Not:** the form sits directly on the light brown page below the banner (sections 4.1–4.2) |
 | ESLint + Prettier, or oxlint? | **oxlint**, which came with Vite's template (section 2) |
 | Are activities tied to a calendar date or a day number? | **Day number.** Moving a trip's dates moves its plan with it; shortening a trip removes the last days (after the warning) |

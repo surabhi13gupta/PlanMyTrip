@@ -44,9 +44,10 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 
 ## 7. User Stories
 <!-- Format: As a <persona>, I want <action> so that <benefit>. -->
-- **US1:** As a new traveler, I want to sign up with a username and password so that my trips are saved to my own account.
+- **US1:** As a new traveler, I want to sign up with my name, a username and a password so that my trips are saved to my own account and the app greets me by name.
   - Acceptance criteria:
-    - [ ] Signup requires a unique username and a password of at least 8 characters
+    - [ ] Signup requires a name, a unique username, and a password of at least 8 characters
+    - [ ] The name is shown as typed (e.g. "Surabhi Gupta"); it doesn't have to be unique
     - [ ] Usernames are case-insensitive ("Surabhi" and "surabhi" are the same account)
     - [ ] If the username is already taken, a clear error is shown
     - [ ] After a successful signup, the user is logged in and taken to My Trips
@@ -70,7 +71,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 
 - **US4:** As a traveler, I want to see all my trips in one list so that I can quickly open the one I need.
   - Acceptance criteria:
-    - [ ] The home screen welcomes the user and has an "Add new trip" button above the list
+    - [ ] The home screen greets the user by name ("Surabhi, welcome to PlanMyTrip"), with "PlanMyTrip" styled like the logo, and has an "Add new trip" button above the list
     - [ ] The list shows each trip's destination, dates, and Trip Type
     - [ ] Trips are sorted by start date, with upcoming trips first
     - [ ] A user with no trips sees an empty state inviting them to add their first trip
@@ -148,7 +149,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | Term | Definition |
 |------|------------|
 | User / Traveler | A person with an account who plans trips. In the MVP, every trip belongs to exactly one user. |
-| Account | A user's login, made of a unique username and a password. |
+| Account | A user's login, made of a unique username and a password, plus the name the app greets them with. |
 | Trip | A planned journey to one destination, with a start date (From), an end date (To), and a Trip Type. A trip has no separate name; it is identified by its destination and dates (e.g. "Paris, France · Oct 10 – Oct 14"). A trip belongs to the user who created it. |
 | Destination | The place a trip is to, entered as free text (e.g. "Paris, France"). There is one destination per trip in the MVP. |
 | Trip Type | A label for who the user is traveling with: Solo, Couple, Family, or Friends. It is a label only and does not change how the app behaves in the MVP. |
