@@ -62,7 +62,7 @@ Fields marked `| null` are always present in responses, with the value `null` wh
   "createdAt": "2026-10-04T14:30:00Z"
 }
 ```
-`username` is always lowercase. `name` is shown exactly as the user typed it (trimmed); it is always a non-empty string. Accounts created before names existed got their username as their name (see [backend-spec.md §4.1](./backend-spec.md#41-users)).
+`username` is always lowercase. `name` is the name exactly as the user typed it (trimmed), or **`null`** if they didn't give one (including accounts created before names existed). The frontend greets by the first word of `name`, or by `username` when `name` is `null`.
 
 ### TripType
 One of: `"solo"`, `"couple"`, `"family"`, `"friends"`.
@@ -143,7 +143,7 @@ Both the frontend (Zod) and the backend (Pydantic + services) enforce these rule
 |-------|------|-----------------|
 | `username` (signup) | 3–30 characters; only letters, numbers, and `_` (`^[A-Za-z0-9_]{3,30}$`). Stored in lowercase | "Use 3–30 letters, numbers, or underscores." |
 | `password` (signup) | 8–72 characters | "Password must be 8–72 characters." |
-| `name` (signup) | Required; 1–50 characters after trimming; any letters, spaces, and punctuation (names in any language) | "Enter your name." |
+| `name` (signup) | Optional; at most 50 characters after trimming; any letters, spaces, and punctuation (names in any language). Empty becomes `null` | "Name can be at most 50 characters." |
 | `username`, `password` (login) | Required (not empty). No other rules, so login gives no hints | "Enter your username." |
 | `destination` | Required; 1–100 characters after trimming | "Enter a destination." |
 | `startDate` | Required; a valid date. Must not be before today (see note). On update, only checked if `startDate` changes | "The start date can't be in the past." |
@@ -192,7 +192,7 @@ All paths are relative to `/api/v1`. There is no PDF endpoint: the PDF is built 
   "password": "correct-horse-42"
 }
 ```
-All three fields are required. (The frontend's "confirm password" field is checked in the browser only and is not sent.)
+`username` and `password` are required. `name` is optional: leave it out, send `null`, or send an empty string, and it's stored as `null`. (The frontend's "confirm password" field is checked in the browser only and is not sent.)
 
 **Success response** — `201 Created`
 ```json
@@ -469,4 +469,4 @@ The updated `Activity`.
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-10-04 | v1 | Initial contract: auth, trips, activities, health |
-| 2026-10-05 | v1 | Signup requires `name`; `User` includes `name`. Kept as v1: the app isn't released yet, and the frontend and backend change together |
+| 2026-10-05 | v1 | Signup accepts an optional `name`; `User` includes `name` (string or `null`). Kept as v1: the app isn't released yet, and the frontend and backend change together |

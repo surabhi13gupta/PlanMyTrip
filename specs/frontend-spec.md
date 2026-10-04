@@ -49,7 +49,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Layout / sections:** The mountain banner with the logo at the top (section 10.1). Below it, directly on the light brown page (**no white card around the form**): the heading "Create an account", the signup form, and a link: "Already have an account? Log in". The column is centered and at most `max-w-md` wide.
 - **Components used:** `AuthLayout`, `SignupForm`
 - **Data needed (API calls):** `POST /auth/signup`
-- **User interactions:** Fill in name, username, password, and confirm password (in that order), then submit. On success, the user is logged in and taken to `/trips`.
+- **User interactions:** Fill in name (optional, labelled "Name (optional)"), username, password, and confirm password (in that order), then submit. On success, the user is logged in and taken to `/trips`.
 - **Loading / empty / error states:** The submit button is disabled and shows a spinner while the request runs. If the username is taken (409), the error appears under the username field. Other errors appear above the form.
 
 ### 4.2 Login
@@ -65,7 +65,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Route:** `/trips`
 - **Purpose:** The first screen after logging in: see all trips and open one, or start a new one (US4).
 - **Layout / sections** (follows the "First screen" sketch):
-  1. A welcome heading with the user's name: **"Surabhi, welcome to PlanMyTrip"**. "PlanMyTrip" is drawn with the same `Wordmark` as the logo ("Plan", handwritten "My", "Trip"), in `primary`, at the heading's size, so the brand looks the same everywhere. A long name wraps naturally.
+  1. A welcome heading with the user's first name: **"Surabhi, welcome to PlanMyTrip"**. **Greeting rule:** use the **first name**: the name trimmed, up to its first space ("Surabhi Gupta" → "Surabhi"). If the user has no name (they skipped it at signup, or their account was created before names existed), use the **username** instead ("surabhi, welcome to PlanMyTrip"). The `greetingName` helper in `src/lib/` implements this rule. "PlanMyTrip" is drawn with the same `Wordmark` as the logo ("Plan", handwritten "My", "Trip"), in `primary`, at the heading's size, so the brand looks the same everywhere. A long first name or username wraps naturally.
   2. An **"Add new trip"** button (main button)
   3. A **"Your trip plans"** section listing trip cards. Each card shows the **destination** as its title, the **dates** below it ("Oct 10 – Oct 14, 2026 · 5 days"), and a Trip Type badge. One column on mobile, two to three columns on wider screens.
 - **Components used:** `AppLayout`, `TripCard`, `EmptyState`
@@ -159,7 +159,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ## 7. User Flows
 1. **First-time user**
    1. Opens `/` → redirected to `/login` → clicks "Create an account"
-   2. Signs up with name, username, and password → lands on My Trips ("Surabhi, welcome to PlanMyTrip") and sees the empty state
+   2. Signs up with name (optional), username, and password → lands on My Trips ("Surabhi, welcome to PlanMyTrip", or "surabhi, welcome to PlanMyTrip" without a name) and sees the empty state
    3. Clicks "Add new trip" → picks From and To dates, enters the destination and Trip Type → clicks "Plan" → lands on the new trip's page with Day 1 … Day N
 2. **Planning a day**
    1. On the Trip Page, taps "Day 2" in the day chips → page scrolls to Day 2
@@ -202,7 +202,7 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 
 | Form | Fields | Validation Rules |
 |------|--------|------------------|
-| Signup | name, username, password, confirmPassword | name: required, 1–50 characters, trimmed; any letters, spaces, and punctuation ("Enter your name."). username: required, 3–30 characters, only letters, numbers, and `_`; case-insensitive ("Surabhi" and "surabhi" are the same account; the backend stores it in lowercase). password: required, 8–72 characters. confirmPassword: must match password |
+| Signup | name, username, password, confirmPassword | name: optional, at most 50 characters, trimmed; any letters, spaces, and punctuation ("Name can be at most 50 characters."); empty is sent as `null`. username: required, 3–30 characters, only letters, numbers, and `_`; case-insensitive ("Surabhi" and "surabhi" are the same account; the backend stores it in lowercase). password: required, 8–72 characters. confirmPassword: must match password |
 | Login | username, password | Both required (no other rules, so the form gives no hints about valid usernames) |
 | Trip (create/edit) | startDate (From), endDate (To), destination, tripType | destination: required, 1–100 characters, trimmed. startDate, endDate: required, valid dates. startDate ≥ today (the user's local date) when creating; when editing, only if the start date was changed, so a trip that has already started can still be edited. endDate ≥ startDate. Trip length (both dates counted) ≤ 14 days. tripType: one of `solo`, `couple`, `family`, `friends` |
 | Activity | title, time, notes | title: required, 1–100 characters, trimmed. time: optional, `HH:mm` (24-hour). notes: optional, ≤ 500 characters |
@@ -247,7 +247,7 @@ Every page starts with the same banner: a mountain photo across the top, with th
   - Replaces the earlier Seiser Alm photo (Lukas Leitner, Unsplash), chosen from four candidates in the preview. The large originals uploaded for comparison (`option1.jpg`–`option3.jpg`, 3–5 MB each) are deleted when this is implemented; only the prepared file is kept.
 - **Size:** full window width, edge to edge. Height: **260px on phones, 340px from `sm` (640px), 420px from `lg` (1024px)** (taller than the first version, at your request). The image fills the banner without stretching (`object-fit: cover`), positioned slightly left of center and a little below middle (`object-position: 45% 60%`), so Mount Fuji stays in view on narrow phones and the pagoda shows beside it on wider screens.
 - **Readable text on the photo:** a dark blue gradient across the top of the banner, from `primary` at 55% opacity to fully transparent at about 60% of the banner's height. White text and the logo sit on it with at least 4.5:1 contrast.
-- **Top bar inside the banner:** the logo on the left. On logged-in pages, the user's **name** (e.g. "Surabhi Gupta", not the username) and a "Log out" button on the right, in white. (This replaces the white header bar.) On Login, Signup, and Not Found, the right side is empty.
+- **Top bar inside the banner:** the logo on the left. On logged-in pages, the user's full **name** (e.g. "Surabhi Gupta"), or their **username** if they have no name, and a "Log out" button on the right, in white. (This replaces the white header bar.) On Login, Signup, and Not Found, the right side is empty.
   - **Always one line:** the logo, the name, and "Log out" never wrap onto a second line, at any width down to 375px. Neither the logo nor "Log out" shrinks or wraps (`white-space: nowrap`, no shrinking). If space runs out, only the **name** gives way: it's cut short with "…" (at most about 8rem wide on phones, 16rem from `sm`), and its full text is available as a tooltip and to screen readers.
 - **Scrolling:** the banner scrolls away with the page; it doesn't stay pinned. The mobile Print/Delete bar on the Trip Page is unchanged.
 - **Page content** starts below the banner, as before (page headings such as "Surabhi, welcome to PlanMyTrip" and "Plan a new trip" stay below it, on the light brown background).
@@ -293,7 +293,7 @@ Every page starts with the same banner: a mountain photo across the top, with th
 - **Targets:** Initial JavaScript ≤ 200 KB gzipped (not counting the PDF library). LCP < 2.5s on simulated 4G.
 
 ## 14. Testing Strategy
-- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, and the Zod schemas (especially the start-date, end-date, and 14-day rules).
+- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
 - **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day), the Edit Trip warning dialog, and `ProtectedRoute` redirects. API calls are mocked with MSW.
 - **End-to-end:** One Playwright test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px. A second test: refresh keeps the user logged in; closing the page with an unsaved activity, then reopening, asks for login and shows the activity saved.
 
@@ -350,9 +350,10 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 |----------|----------|
 | Banner photo: the 700×350 `mountains.jpg`, or a larger one? | First the Seiser Alm photo (Unsplash); then **Mount Fuji with the Chureito Pagoda by Tomáš Malík (Pexels)**, 1920×973, chosen from four candidates (section 10.1) |
 | Banner height? | Taller: 260 / 340 / 420px on phones / tablets / laptops (section 10.1) |
-| Name or username in the banner? | **Name** ("Surabhi Gupta"), shortened with "…" if long (section 10.1) |
+| Name or username in the banner? | **Full name** ("Surabhi Gupta"), or the username if there's no name; shortened with "…" if long (section 10.1) |
+| Greet by full name or first name? | **First name** ("Surabhi, welcome…"); by username when there's no name (section 4.3) |
 | Should the welcome heading match the logo? | **Yes:** "PlanMyTrip" in the heading uses the logo's `Wordmark`, handwritten "My" included |
-| Ask for a name at signup? | **Yes:** required, 1–50 characters; My Trips greets the user by name. Existing accounts get their username as their name (backend-spec §4.1) |
+| Ask for a name at signup? | **Yes, optional:** up to 50 characters. Without one (or for accounts created before names), the app uses the username (backend-spec §4.1) |
 | Login form: inside a white box or not? | **Not:** the form sits directly on the light brown page below the banner (sections 4.1–4.2) |
 | ESLint + Prettier, or oxlint? | **oxlint**, which came with Vite's template (section 2) |
 | Are activities tied to a calendar date or a day number? | **Day number.** Moving a trip's dates moves its plan with it; shortening a trip removes the last days (after the warning) |
