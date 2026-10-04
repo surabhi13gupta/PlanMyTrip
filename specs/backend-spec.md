@@ -27,7 +27,7 @@ Terms such as Trip, Day, and Activity are used as defined in the Glossary in [go
 - Package manager: `uv`
 - Linting / formatting: Ruff
 - Testing: pytest + FastAPI's `TestClient`, against a real local PostgreSQL
-- Hosting: Vercel Functions, in the same Vercel project as the frontend (section 14)
+- Hosting: Vercel, in the same project as the frontend, using Vercel Services (section 14). The backend runs as Vercel Functions
 
 ## 3. Architecture
 One FastAPI app, organized in layers. Each layer only calls the one below it:
@@ -52,7 +52,7 @@ PostgreSQL (Neon)
 - **Services** hold all the rules, so they can be tested without HTTP.
 - **Dependencies** (FastAPI `Depends`) provide the database session and the current user to each router.
 - All routes are under the `/api/v1` prefix, both locally and on Vercel.
-- **Imports:** Code inside `backend/app/` uses relative imports (`from .db import get_db`), so the same code runs locally (`uvicorn app.main:app` from `backend/`) and on Vercel (imported as `backend.app.main` by `api/index.py`).
+- **Entry point:** The FastAPI app is `app.main:app`, seen from the `backend/` folder. That is what `uvicorn` runs locally and what Vercel loads (`entrypoint` in `vercel.json`). Code inside `app/` uses relative imports (`from .db import get_db`).
 - **Serverless:** On Vercel, the app runs as a function that starts when requests arrive and stops when idle. The app therefore keeps no state in memory between requests; everything lives in PostgreSQL.
 
 ## 4. Data Model
@@ -200,28 +200,37 @@ The Vercel–Neon integration sets `DATABASE_URL` and `DATABASE_URL_UNPOOLED` au
   - **Development:** Your computer. FastAPI with `uvicorn --reload` on `localhost:8000`, PostgreSQL 16 in Docker (`docker compose up db`). The Vite dev server sends `/api` requests to port 8000.
   - **Preview:** Every branch and pull request on Vercel. The Neon integration's "database branch for each preview deployment" option is turned on, so each preview gets its own copy of the database, and testing on a preview can't touch real data. **This option must stay on:** previews run migrations during their build (see Database migrations), so without it, every preview build would change the production database.
   - **Production:** Pushes to `main`.
-- **Hosting:** Vercel, in **one project** with the frontend. The repository root is the project root:
-  - `api/index.py` is the Vercel Function entry point. It only imports the FastAPI app: `from backend.app.main import app`.
-  - The root `vercel.json` runs database migrations, builds the frontend, and sends all `/api/*` requests to that function:
+- **Hosting:** Vercel, in **one project** with the frontend, using **Vercel Services** (Beta, available on all plans). Services builds `frontend/` and `backend/` separately, then serves both at one address. The root `vercel.json`:
     ```json
     {
-      "buildCommand": "pip install -r requirements.txt && alembic -c backend/alembic.ini upgrade head && cd frontend && npm ci && npm run build",
-      "outputDirectory": "frontend/dist",
+      "services": {
+        "frontend": {
+          "root": "frontend/",
+          "framework": "vite",
+          "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+        },
+        "backend": {
+          "root": "backend/",
+          "framework": "fastapi",
+          "entrypoint": "app.main:app",
+          "buildCommand": "uv run alembic upgrade head"
+        }
+      },
       "rewrites": [
-        { "source": "/api/(.*)", "destination": "/api/index" },
-        { "source": "/(.*)", "destination": "/index.html" }
-      ],
-      "functions": {
-        "api/index.py": { "excludeFiles": "{frontend/**,backend/tests/**}" }
-      }
+        { "source": "/api/(.*)", "destination": { "service": "backend" } },
+        { "source": "/(.*)", "destination": { "service": "frontend" } }
+      ]
     }
     ```
-  - Vercel installs the function's Python packages from the root `requirements.txt`, which is generated from `backend/pyproject.toml` with `uv export --no-dev -o requirements.txt`. Regenerate it whenever dependencies change. Alembic is a main dependency (not a development-only one), because the build needs it.
+  - **Routing:** Requests under `/api/` go to the FastAPI backend; everything else goes to the frontend. The backend receives the **original path** (e.g. `/api/v1/health`), which matches the app's `/api/v1` prefix. Inside the frontend service, every address falls back to `index.html`, so React Router can handle pages like `/trips/42`.
+  - **Python packages:** Vercel reads `backend/pyproject.toml` and `backend/uv.lock` directly, and uses Python 3.14 from `backend/.python-version`. No generated `requirements.txt` is needed. Alembic is a main dependency (not development-only), because the build runs it.
   - **First implementation step:** deploy a "hello world" version (the health endpoint, a blank React page, and a first migration) to check this setup works end to end before building features. In particular, confirm that:
-    1. Vercel's build machine can install the Python packages and run Alembic (if not, adjust the build command, e.g. use `python3 -m pip`);
-    2. on a preview deployment, Neon has already created the preview database branch when the build runs, so the migration updates the preview branch and not production.
+    1. the backend's build command can run `uv run alembic upgrade head` (Alembic installed, `DATABASE_URL_UNPOOLED` available at build time);
+    2. on a preview deployment, Neon has already created the preview database branch when the build runs, so the migration updates the preview branch and not production;
+    3. the frontend's `index.html` fallback doesn't block real files (JavaScript, CSS, fonts).
+  - **Fallback if Services causes problems:** switch to the older single-function setup: an `api/index.py` entry point that imports the FastAPI app, a root `requirements.txt` generated with `uv export --no-dev`, and a root `vercel.json` with one combined build command and rewrites (`/api/(.*)` → `/api/index`, everything else → `/index.html`). This takes about 30 minutes and changes no application code.
 - **CI/CD:** Vercel deploys automatically on every push. Tests run locally before pushing; adding GitHub Actions to run them on every push is a post-MVP option.
-- **Database migrations:** Alembic, run **automatically during every Vercel build** (`alembic upgrade head`, the second step of the build command), using `DATABASE_URL_UNPOOLED`, which Vercel provides at build time.
+- **Database migrations:** Alembic, run **automatically during every Vercel build** (`uv run alembic upgrade head`, the backend service's build command), using `DATABASE_URL_UNPOOLED`, which Vercel provides at build time.
   - The migration runs before the new version goes live, so new code never runs without its tables.
   - If the migration fails, the build stops and the current version stays live.
   - Production builds migrate the production database; preview builds migrate their own Neon branch.
@@ -231,12 +240,11 @@ The Vercel–Neon integration sets `DATABASE_URL` and `DATABASE_URL_UNPOOLED` au
 ## 15. Project Structure
 ```
 PlanMyTrip/
-  vercel.json               # one project: frontend build + /api function (section 14)
-  requirements.txt          # generated from backend/pyproject.toml for Vercel
-  api/
-    index.py                # Vercel entry: from backend.app.main import app
+  vercel.json               # Vercel Services: frontend + backend, routing (section 14)
   backend/
-    pyproject.toml          # dependencies (managed with uv)
+    pyproject.toml          # dependencies (managed with uv), requires-python 3.14
+    uv.lock                 # exact package versions (used locally and by Vercel)
+    .python-version         # 3.14
     docker-compose.yml      # local PostgreSQL 16
     .env.example            # DATABASE_URL=..., APP_ENV=development
     alembic.ini

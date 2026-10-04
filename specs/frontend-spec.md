@@ -301,10 +301,10 @@ frontend/                 # vercel.json lives at the repository root (see backen
 ## 16. Deployment
 The frontend and the FastAPI backend are deployed together as **one Vercel project**, at one address. The full setup, including `vercel.json`, is in [backend-spec.md §14](./backend-spec.md#14-deployment). For the frontend, that means:
 
-- **Build:** Vercel first runs the database migrations (see the backend spec), then `cd frontend && npm ci && npm run build`, and serves `frontend/dist`.
+- **Build:** With Vercel Services, `frontend/` is built as its own service (Vite: `npm run build`, output `dist`). The backend service builds separately and runs the database migrations (see the backend spec).
 - **Automatic deploys:** Every push to `main` deploys to production. Every other branch and pull request gets its own preview URL.
-- **API calls:** `vercel.json` sends every `/api/*` request to the FastAPI function in the same project. The browser only ever talks to one address, so the session cookie is a same-site cookie, even on the free `*.vercel.app` address. No proxy to another host is needed.
-- **SPA fallback:** Every other address returns `index.html`, so refreshing or opening a link like `/trips/42` works, and React Router shows the right page. Real files such as JavaScript, CSS, and fonts are served first, because Vercel checks for a matching file before applying rewrites.
+- **API calls:** `vercel.json` sends every `/api/*` request to the FastAPI backend service in the same project. The browser only ever talks to one address, so the session cookie is a same-site cookie, even on the free `*.vercel.app` address. No proxy to another host is needed.
+- **SPA fallback:** Inside the frontend service, every address returns `index.html`, so refreshing or opening a link like `/trips/42` works, and React Router shows the right page. Real files such as JavaScript, CSS, and fonts must still be served directly; this is checked during the "hello world" deploy.
 - **Environment variables:** `VITE_API_BASE_URL=/api/v1` in every environment.
 - **HTTPS:** Vercel serves every address over HTTPS, which the `Secure` session cookie requires.
 - **Preview deployments:** Each preview runs its own copy of the backend, connected to its own Neon database branch (see the backend spec), so testing on a preview can't change real data.
