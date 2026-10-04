@@ -1,0 +1,21 @@
+# Secrets: local environment files are never committed (use .env.example as the template)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node (frontend/.gitignore covers the rest)
+node_modules/
+
+# Vercel
+.vercel/
+
+# Editors / OS
+.idea/
+.DS_Store

@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+@import '@fontsource/fira-sans/400.css';
+@import '@fontsource/fira-sans/500.css';
+@import '@fontsource/fira-sans/600.css';
+
+/* Design tokens from frontend-spec.md §10. Use as bg-sand, text-primary, border-line, etc. */
+@theme {
+  --color-sand: #f4ece1;
+  --color-surface: #ffffff;
+  --color-primary: #1e3a5f;
+  --color-primary-hover: #152a45;
+  --color-primary-soft: #e3eaf3;
+  --color-ink: #1e293b;
+  --color-muted: #6b5e4e;
+  --color-line: #e5d9c8;
+  --color-field-border: #8c7b66;
+  --color-danger: #b91c1c;
+
+  --font-sans: 'Fira Sans', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-sand font-sans text-base text-ink;
+  }
+}
