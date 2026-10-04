@@ -15,7 +15,7 @@ The backend does **not** generate PDFs; the browser does that (see [frontend-spe
 Terms such as Trip, Day, and Activity are used as defined in the Glossary in [goal-spec.md](./goal-spec.md#13-glossary).
 
 ## 2. Tech Stack
-- Language / runtime: Python 3.12
+- Language / runtime: Python 3.14, the same version locally and on Vercel. It is pinned with `requires-python = ">=3.14,<3.15"` in `backend/pyproject.toml` and a `.python-version` file, because Vercel otherwise uses its default (3.12)
 - Framework: FastAPI
 - Validation: Pydantic v2 (built into FastAPI)
 - Database: PostgreSQL, hosted on Neon
