@@ -60,3 +60,8 @@ Open http://localhost:5173 and create an account. The Vite dev server forwards `
 | `docker compose down -v` (in `backend/`) | Stop the database and delete all its data |
 | `uv run alembic revision --autogenerate -m "..."` (in `backend/`) | Create a migration from model changes (review it before committing) |
 | http://localhost:8000/api/v1/docs | Interactive API docs (while the backend runs) |
+
+## Credits
+
+- Banner photo: Seiser Alm, Dolomites, by [Lukas Leitner on Unsplash](https://unsplash.com/photos/epDtXfC8ipI) (Unsplash License).
+- Fonts: [Fira Sans](https://fontsource.org/fonts/fira-sans) and [Dancing Script](https://fontsource.org/fonts/dancing-script) (SIL Open Font License), self-hosted via Fontsource.

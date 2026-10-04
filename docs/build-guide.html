@@ -145,7 +145,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
   <div class="meta-row">
     <span class="pill">Specs: complete</span>
     <span class="pill">App: built on <code>main</code></span>
-    <span class="pill">87 automated tests passing</span>
+    <span class="pill">90 automated tests passing</span>
     <span class="pill">Next: connect Vercel</span>
   </div>
 </header>
@@ -205,7 +205,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
     <table>
       <thead><tr><th>Screen</th><th>Address</th><th>From your mockups</th></tr></thead>
       <tbody>
-        <tr><td>Log in / Create account</td><td class="mono">/login, /signup</td><td>Not sketched; a centered card</td></tr>
+        <tr><td>Log in / Create account</td><td class="mono">/login, /signup</td><td>Not sketched; the form sits below the banner, no card</td></tr>
         <tr><td>My Trips (home)</td><td class="mono">/trips</td><td>“First screen”: welcome, “+ Add new trip”, trip cards</td></tr>
         <tr><td>Plan a new trip</td><td class="mono">/trips/new</td><td>“New trip screen”: From, To, Destination (+ Trip Type), “Plan”</td></tr>
         <tr><td>Trip page</td><td class="mono">/trips/:id</td><td>“Saved trip” + Day 1…N: days, Edit, Print, Delete</td></tr>
@@ -315,10 +315,14 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
       <h3>Setup check (“hello world”)</h3>
       <p>Skeleton of every part, proving browser → frontend → backend → database locally. Merged into <code>main</code>; the <code>setup-check</code> branch was then deleted.</p>
       <span class="commits">30ba1ff · 2eaa459</span></div></li>
-    <li class="now"><span class="dot">10</span><div class="tl-body">
+    <li><span class="dot">10</span><div class="tl-body">
       <h3>The full app</h3>
       <p>Backend (tables, login, trips, activities), frontend (every page from the mockups, PDF, close-to-logout, save-on-close), and 87 automated tests. Linting settled on oxlint.</p>
-      <span class="commits">on main, after 2eaa459</span></div></li>
+      <span class="commits">04ec7c1 · f9c1e17 · ae4e68d</span></div></li>
+    <li class="now"><span class="dot">11</span><div class="tl-body">
+      <h3>Mountain banner and logo</h3>
+      <p>Spec first, reviewed with a live preview: a mountain photo across the top of every page, a map-pin logo with a handwritten “My”, login without the white card, and username plus Log out kept on one line. The small, unclear-rights photo was replaced with a free 1920px Unsplash photo.</p>
+      <span class="commits">e82517e (spec) · then the implementation</span></div></li>
   </ol>
 </section>
 
@@ -368,6 +372,8 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
         <tr><td>Migrations</td><td>Run during each Vercel build</td><td>Automatic, and new code never goes live before its tables exist</td></tr>
         <tr><td>Failed-login limits</td><td>Future work</td><td>Your choice, to keep the MVP small</td></tr>
         <tr><td>Python tooling</td><td><code>uv</code></td><td>Manages the environment, locks exact versions, and is fast</td></tr>
+        <tr><td>Banner photo</td><td>Seiser Alm, Dolomites, by Lukas Leitner (Unsplash)</td><td>Closest to your original photo, sharp at 1920px, and free to use; the first photo was 700px and came through a Bing search</td></tr>
+        <tr><td>Logo</td><td>Map pin with two peaks; “Plan<i>My</i>Trip” with a handwritten “My”</td><td>A place to go plus the mountains of the banner; the cursive “My” was your request</td></tr>
         <tr><td>Frontend linting</td><td>oxlint (instead of ESLint + Prettier)</td><td>Came with Vite's template, much faster, includes React and accessibility rules</td></tr>
       </tbody>
     </table>
@@ -394,6 +400,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
         <li><strong>date-fns</strong>: calendar-date math</li>
         <li><strong>@react-pdf/renderer</strong>: the itinerary PDF, loaded only on Print</li>
         <li><strong>sonner</strong>: small pop-up messages (toasts)</li>
+        <li><strong>Dancing Script</strong>: handwriting font, used only for “My” in the logo</li>
         <li><strong>oxlint</strong>: checks code for likely bugs</li>
       </ul>
     </div>
@@ -458,12 +465,13 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
 └── tests/               <span class="c"># 45 tests: auth, sessions, trips, activities, ownership, health</span></code></pre>
   <pre class="tree" aria-label="Frontend files"><code>frontend/src/
 ├── main.tsx, router.tsx, queryClient.ts  <span class="c"># start-up, routes, cache + "session expired" handling</span>
-├── styles.css           <span class="c"># Tailwind + color tokens + Fira Sans</span>
+├── styles.css           <span class="c"># Tailwind + color tokens + Fira Sans + Dancing Script</span>
+├── assets/              <span class="c"># header-mountains.jpg, the banner photo (1920×819, 236 KB)</span>
 ├── types/index.ts       <span class="c"># Trip, Activity, User shapes from the contract</span>
 ├── api/                 <span class="c"># client.ts (fetch + ApiError), auth.ts, trips.ts</span>
 ├── hooks/               <span class="c"># useAuth, useTrips (+ mutations), useUnsavedFormRegistry</span>
 ├── lib/                 <span class="c"># dates, activities (sorting), schemas (Zod), tabSession, unsavedForms, errors</span>
-├── components/          <span class="c"># TripForm, DayCard, DayNav, ConfirmDialog, PrintButton, layouts, guards …</span>
+├── components/          <span class="c"># SiteBanner, Logo, TripForm, DayCard, DayNav, ConfirmDialog, PrintButton, layouts, guards …</span>
 ├── pages/               <span class="c"># Login, Signup, Trips, NewTrip, Trip, EditTrip, NotFound</span>
 ├── pdf/                 <span class="c"># ItineraryPdf.tsx (layout), exportItinerary.ts (download)</span>
 └── test/                <span class="c"># test setup, MSW fake server, render helpers</span>
@@ -525,6 +533,11 @@ frontend/e2e/planmytrip.spec.ts  <span class="c"># browser tests, desktop + 375p
       <h3>Print</h3>
       <p>Clicking Print loads the PDF library (about 445 KB) only then, builds the itinerary with Fira Sans and the app's dark blue, and downloads <code>Paris-France-2026-10-10-itinerary.pdf</code>.</p>
       <p class="mono">components/PrintButton.tsx · pdf/</p>
+    </div>
+    <div class="card">
+      <h3>Mountain banner and logo</h3>
+      <p>Every page starts with the same banner: the photo fills the width (200px tall on phones, 300px on laptops) with a dark-blue shade at the top so white text stays readable. The logo sits top left. Logged in, the username and Log out sit top right on one line; a long name is shortened with “…”. The photo is decorative, so screen readers skip it.</p>
+      <p class="mono">components/SiteBanner.tsx · Logo.tsx · Layouts.tsx</p>
     </div>
   </div>
 </section>
@@ -671,7 +684,7 @@ else if (getTripDuration(v.startDate, v.endDate) &gt; 14)     → "A trip can be
       <thead><tr><th>Suite</th><th>Covers</th><th>Result</th></tr></thead>
       <tbody>
         <tr><td>Backend (pytest)</td><td>Signup/login/logout, cookie flags, sessions and idle timeout, trip rules (14 days, past dates, shortening), activities and sorting, all 7 endpoints for another user's data, JSON-only writes</td><td class="status-ok">45 passed</td></tr>
-        <tr><td>Frontend (Vitest)</td><td>Date math (incl. year and daylight-saving boundaries), sorting, PDF file names, all form rules, TripForm, DayCard, save-on-close registry, route guards, start-up session check, Edit Trip warning</td><td class="status-ok">42 passed</td></tr>
+        <tr><td>Frontend (Vitest)</td><td>Date math (incl. year and daylight-saving boundaries), sorting, PDF file names, all form rules, TripForm, DayCard, save-on-close registry, route guards, start-up session check, Edit Trip warning, banner and logo (one-line username, card-less login)</td><td class="status-ok">45 passed</td></tr>
         <tr><td>Lint and types</td><td>ruff, oxlint, TypeScript strict, production build</td><td class="status-ok">Passed</td></tr>
         <tr><td>Smoke test</td><td>Real servers through the frontend's address: signup → trip → activity → logout</td><td class="status-ok">Passed</td></tr>
         <tr><td>End-to-end (Playwright)</td><td>Full flow to PDF download, and close-to-logout with save-on-close, at desktop and 375px</td><td class="status-next">Written; needs browser system libraries (see What comes next)</td></tr>

@@ -2,6 +2,8 @@
 @import '@fontsource/fira-sans/400.css';
 @import '@fontsource/fira-sans/500.css';
 @import '@fontsource/fira-sans/600.css';
+/* Only for the handwritten "My" in the logo (frontend-spec.md §10.1). */
+@import '@fontsource/dancing-script/700.css';
 
 /* Design tokens from frontend-spec.md §10. Use as bg-sand, text-primary, border-line, etc. */
 @theme {
@@ -17,6 +19,7 @@
   --color-danger: #b91c1c;
 
   --font-sans: 'Fira Sans', system-ui, sans-serif;
+  --font-script: 'Dancing Script', cursive;
 }
 
 @layer base {
