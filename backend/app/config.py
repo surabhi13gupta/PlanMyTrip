@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     database_url_unpooled: str | None = None
     app_env: str = "development"
     log_level: str = "INFO"
+    session_cookie_secure: bool | None = None
+    session_idle_hours: int = 12
 
     @property
     def sqlalchemy_url(self) -> str:
@@ -27,6 +29,13 @@ class Settings(BaseSettings):
     def migrations_url(self) -> str:
         """Migrations use Neon's direct (unpooled) connection when it is available."""
         return to_sqlalchemy_url(self.database_url_unpooled or self.database_url)
+
+    @property
+    def cookie_secure(self) -> bool:
+        # Local development runs on plain http://localhost, where a Secure cookie would be dropped.
+        if self.session_cookie_secure is not None:
+            return self.session_cookie_secure
+        return self.app_env != "development"
 
 
 @lru_cache

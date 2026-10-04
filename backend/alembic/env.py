@@ -4,14 +4,15 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from app.config import get_settings
+from app.models import Base
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Models' metadata goes here once tables exist (Step 2), for `alembic revision --autogenerate`.
-target_metadata = None
+# Lets `alembic revision --autogenerate` compare the models with the database.
+target_metadata = Base.metadata
 
 
 def migrations_url() -> str:
