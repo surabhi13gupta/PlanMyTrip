@@ -1,6 +1,10 @@
 # PlanMyTrip
 
-Plan a trip day by day and print a clean itinerary. Specs live in [`specs/`](./specs); a guided tour of the project is in [`docs/build-guide.html`](./docs/build-guide.html).
+Plan a trip day by day and print a clean itinerary.
+
+**Live:** https://planmytrip-sur.vercel.app
+
+Specs live in [`specs/`](./specs); a guided tour of the project is in [`docs/build-guide.html`](./docs/build-guide.html).
 
 | Part | Stack | Spec |
 |------|-------|------|
@@ -52,6 +56,27 @@ Open http://localhost:5173 and create an account. The Vite dev server forwards `
 | `cd frontend && npm run lint` | Frontend lint (oxlint) |
 
 End-to-end browser tests (Playwright) are future scope: they're in `frontend/e2e/`, commented out.
+
+**Low on memory?** Running every frontend test file at once can starve a small machine. Run one file at a time instead:
+
+```bash
+cd frontend && npx vitest run src/lib/greeting.test.ts --maxWorkers=1
+```
+
+## Deployment
+
+The app runs on **Vercel** (one project, using Vercel Services for the frontend and the FastAPI backend at one address) with a **Neon** PostgreSQL database. Details: [backend-spec.md §14](./specs/backend-spec.md#14-deployment).
+
+| What | How |
+|------|-----|
+| Production | Every push to `main` deploys to https://planmytrip-sur.vercel.app (also `plan-my-trip-six.vercel.app`) |
+| Preview | Every other branch or pull request gets its own preview link **and its own Neon database branch**, so testing can't touch real data. Confirm this once before the first branch work (push a test branch, check Neon shows a new branch, delete both) |
+| Database migrations | Run automatically in every build (`uv run alembic upgrade head` in the backend service), before the new version goes live |
+| Database settings | Added by the Vercel–Neon integration with the prefix `DATABASE`: `DATABASE_URL` (pooled, used by the app) and `DATABASE_URL_UNPOOLED` (direct, used by migrations) |
+| Production mode | Detected from Vercel's `VERCEL_ENV`, so the session cookie is `Secure` with no manual setup |
+| Domains | Vercel project → Settings → Domains. `plan-my-trip.vercel.app` belongs to someone else |
+| Health check | https://planmytrip-sur.vercel.app/api/v1/health → `{"status":"ok"}` |
+
 
 ## Useful commands
 

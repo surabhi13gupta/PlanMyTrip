@@ -144,9 +144,9 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
   <p class="lede">What the app does, how its parts fit together, every decision made and why, and a walkthrough of the code that implements the four specs. Read it top to bottom once; come back to the glossary when a term is unfamiliar.</p>
   <div class="meta-row">
     <span class="pill">Specs: complete</span>
-    <span class="pill">App: built on <code>main</code></span>
-    <span class="pill">99 automated tests passing</span>
-    <span class="pill">Next: connect Vercel</span>
+    <span class="pill">App: live at <a href="https://planmytrip-sur.vercel.app">planmytrip-sur.vercel.app</a></span>
+    <span class="pill">104 automated tests passing</span>
+    <span class="pill">Hosted on Vercel + Neon</span>
   </div>
 </header>
 
@@ -323,10 +323,14 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
       <h3>Mountain banner and logo</h3>
       <p>Spec first, reviewed with a live preview: a mountain photo across the top of every page, a map-pin logo with a handwritten “My”, login without the white card, and username plus Log out kept on one line. The small, unclear-rights photo was replaced with a free 1920px Unsplash photo.</p>
       <span class="commits">e82517e · 589bf93</span></div></li>
-    <li class="now"><span class="dot">12</span><div class="tl-body">
+    <li><span class="dot">12</span><div class="tl-body">
       <h3>Fuji banner, names, and a logo-style greeting</h3>
       <p>Picked from three photos you uploaded: Mount Fuji with the Chureito Pagoda, in a taller banner. Signup gained an optional name; My Trips greets “Surabhi, welcome to Plan<i>My</i>Trip” (first name, or username without a name), and the banner shows the full name.</p>
-      <span class="commits">d93094f · 048b48f (spec) · then the implementation</span></div></li>
+      <span class="commits">d93094f · 048b48f · ad6b3e9 · 2430688</span></div></li>
+    <li class="now"><span class="dot">13</span><div class="tl-body">
+      <h3>Deployed</h3>
+      <p>Imported into Vercel (Services), added a Neon database in US East with its own branch for every preview, and fixed the production cookie: the app now reads Vercel's <code>VERCEL_ENV</code>, so the login cookie is <code>Secure</code> online. Checked live: health, deep links, files, cookie flags, CSRF. Live at <a href="https://planmytrip-sur.vercel.app">planmytrip-sur.vercel.app</a>.</p>
+      <span class="commits">8703380</span></div></li>
   </ol>
 </section>
 
@@ -688,8 +692,8 @@ else if (getTripDuration(v.startDate, v.endDate) &gt; 14)     → "A trip can be
     <table>
       <thead><tr><th>Suite</th><th>Covers</th><th>Result</th></tr></thead>
       <tbody>
-        <tr><td>Backend (pytest)</td><td>Signup (incl. optional name)/login/logout, cookie flags, sessions and idle timeout, trip rules (14 days, past dates, shortening), activities and sorting, all 7 endpoints for another user's data, JSON-only writes</td><td class="status-ok">49 passed</td></tr>
-        <tr><td>Frontend (Vitest)</td><td>Date math (incl. year and daylight-saving boundaries), sorting, PDF file names, all form rules, TripForm, DayCard, save-on-close registry, route guards, start-up session check, Edit Trip warning, banner and logo (one-line name, card-less login), greeting rules (first name, username fallback), optional name</td><td class="status-ok">50 passed</td></tr>
+        <tr><td>Backend (pytest)</td><td>Signup (incl. optional name)/login/logout, cookie flags, sessions and idle timeout, trip rules (14 days, past dates, shortening), activities and sorting, all 7 endpoints for another user's data, JSON-only writes, production settings (Secure cookie on Vercel)</td><td class="status-ok">52 passed</td></tr>
+        <tr><td>Frontend (Vitest)</td><td>Date math (incl. year and daylight-saving boundaries), sorting, PDF file names, all form rules, TripForm, DayCard, save-on-close registry, route guards, start-up session check, Edit Trip warning, banner and logo (one-line name, card-less login), greeting rules (first name, username fallback), optional name</td><td class="status-ok">52 passed</td></tr>
         <tr><td>Lint and types</td><td>ruff, oxlint, TypeScript strict, production build</td><td class="status-ok">Passed</td></tr>
         <tr><td>Smoke test</td><td>Real servers through the frontend's address: signup → trip → activity → logout</td><td class="status-ok">Passed</td></tr>
         <tr><td>End-to-end (Playwright)</td><td>Full flow to PDF download, and close-to-logout with save-on-close, at desktop and 375px</td><td class="status-next">Future scope: written, commented out</td></tr>
@@ -706,7 +710,8 @@ else if (getTripDuration(v.startDate, v.endDate) &gt; 14)     → "A trip can be
 <section id="run">
   <div class="section-head">
     <h2>Run it</h2>
-    <p>From <code>/home/surabhi/Projects/PlanMyTrip</code>. Docker Desktop must be running.</p>
+    <p><strong>Online:</strong> just open <a href="https://planmytrip-sur.vercel.app">planmytrip-sur.vercel.app</a>. Health check: <a href="https://planmytrip-sur.vercel.app/api/v1/health"><code>/api/v1/health</code></a>.</p>
+    <p><strong>On your computer</strong> (uses a lot of memory: Docker plus two servers), from <code>/home/surabhi/Projects/PlanMyTrip</code> with Docker Desktop running:</p>
   </div>
 <pre><code># Terminal 1 – database
 cd backend &amp;&amp; docker compose up -d --wait db
@@ -758,8 +763,9 @@ cd frontend &amp;&amp; npm run dev</code></pre>
       <thead><tr><th>Step</th><th>What</th><th>Who</th></tr></thead>
       <tbody>
         <tr><td>Browser tests</td><td>Future scope. To bring them back: <code>cd frontend &amp;&amp; sudo npx playwright install-deps chromium</code>, uncomment <code>e2e/planmytrip.spec.ts</code>, restore the <code>e2e</code> script</td><td>Later</td></tr>
-        <tr><td>Connect Vercel</td><td>Create a Vercel account, import the repo, add Neon with preview branching on. Check that migrations run in the build, previews get their own database, and the page's files load</td><td>You, guided</td></tr>
-        <tr><td>Go live</td><td>Pushes to <code>main</code> deploy to production; check the success metrics (signup to PDF in under 5 minutes, works at 375px)</td><td>Together</td></tr>
+        <tr><td>Deploy</td><td>Done: Vercel + Neon, live at <a href="https://planmytrip-sur.vercel.app">planmytrip-sur.vercel.app</a>. Every push to <code>main</code> goes live</td><td class="status-ok">Done</td></tr>
+        <tr><td>Preview check</td><td>Before the first branch work: push a test branch, confirm its preview gets its own Neon database branch, then delete both</td><td>Together, later</td></tr>
+        <tr><td>Success metrics</td><td>Time a first-time signup to a downloaded PDF (target: under 5 minutes) and check every screen at 375px on a phone</td><td>You</td></tr>
         <tr><td>Future work</td><td>From the goal spec: email login, past trips, multiple destinations, sharing, limiting failed logins, dark mode</td><td>Later</td></tr>
       </tbody>
     </table>
