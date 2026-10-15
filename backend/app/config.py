@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,7 +17,11 @@ class Settings(BaseSettings):
 
     database_url: str
     database_url_unpooled: str | None = None
-    app_env: str = "development"
+    # APP_ENV if set; otherwise VERCEL_ENV, which Vercel sets on every deployment to
+    # "production", "preview", or "development". Locally neither is set: "development".
+    app_env: str = Field(
+        default="development", validation_alias=AliasChoices("APP_ENV", "VERCEL_ENV")
+    )
     log_level: str = "INFO"
     session_cookie_secure: bool | None = None
     session_idle_hours: int = 12

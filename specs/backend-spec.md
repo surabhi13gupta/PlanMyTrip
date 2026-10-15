@@ -181,7 +181,7 @@ No other third-party services in the MVP.
 |----------|-------------|----------|---------|
 | `DATABASE_URL` | Neon **pooled** connection string, used by the app | Yes | — |
 | `DATABASE_URL_UNPOOLED` | Neon direct connection string, used only by Alembic migrations | Yes (for migrations) | — |
-| `APP_ENV` | `development`, `preview`, or `production` | No | `development` |
+| `APP_ENV` | `development`, `preview`, or `production` | No | Vercel's `VERCEL_ENV` if set (Vercel sets it on every deployment to exactly these values), otherwise `development`. So no setup is needed on Vercel, and the session cookie is `Secure` there automatically |
 | `SESSION_COOKIE_SECURE` | Adds `Secure` to the cookie | No | `false` in development, `true` otherwise |
 | `SESSION_IDLE_HOURS` | Hours without any request before a session ends | No | `12` |
 | `LOG_LEVEL` | Logging level | No | `INFO` |
