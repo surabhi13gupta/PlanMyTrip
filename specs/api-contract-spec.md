@@ -1,8 +1,8 @@
 # API Contract Spec — PlanMyTrip
 
-> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-04
+> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-16
 > Version: v1
-> Related: [goal-spec.md](./goal-spec.md), [frontend-spec.md](./frontend-spec.md), [backend-spec.md](./backend-spec.md)
+> Related: [goal-spec.md](./goal-spec.md), [frontend-spec.md](./frontend-spec.md), [backend-spec.md](./backend-spec.md), [ai-spec.md](./ai-spec.md)
 
 This contract is the **single source of truth** between the frontend and the backend. The frontend (TypeScript + Zod) and the backend (Python + Pydantic) can't share code, so both follow the shapes and rules written here. If the two specs ever disagree with this file, this file wins.
 
@@ -22,6 +22,7 @@ This contract is the **single source of truth** between the frontend and the bac
 - **Pagination:** None. A user's trips are returned in one list; with at most a few dozen trips per user, this is fine for the MVP.
 - **Sorting:** Trips are returned sorted by `startDate` (earliest first), then `createdAt`. Activities are sorted by `dayNumber`, then those with a `time` by time, then those without a time by `createdAt`.
 - **Versioning strategy:** The version is in the URL (`/api/v1`). Adding new optional fields or new endpoints doesn't change the version. Removing or renaming fields, or changing their meaning, would need `/api/v2`.
+- **Streaming responses:** One endpoint, `POST /trips/{tripId}/chat/messages`, answers with a Server-Sent Events stream (`Content-Type: text/event-stream`) instead of one JSON body, so the assistant's reply appears as it's written. Errors found before the stream starts (validation, limits, not found) are normal JSON error responses; errors after it starts arrive as an `error` event (section 6.14).
 
 ## 2. Standard Error Response
 Every error response has this shape:
@@ -46,9 +47,13 @@ Every error response has this shape:
 | 404 | `NOT_FOUND` | The trip or activity doesn't exist, isn't a valid ID, or belongs to another user | — |
 | 409 | `USERNAME_TAKEN` | Signup with a username that already exists (in any letter case) | `{ "field": "username", "message": "This username is already taken." }` |
 | 409 | `ACTIVITIES_WOULD_BE_DELETED` | A trip update would remove days that have activities, and `confirmDeleteActivities` isn't `true` | `{ "activitiesToDelete": 3, "newDurationDays": 3 }` |
+| 409 | `CHAT_FULL` | The trip's assistant conversation has reached 60 messages; the user must Start over | — |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | A `POST`, `PATCH`, or `DELETE` without `Content-Type: application/json` | — |
+| 429 | `AI_LIMIT_REACHED` | The user has already sent 20 assistant messages today (UTC) | `{ "dailyLimit": 20, "resetsAt": "2026-10-17T00:00:00Z" }` |
+| 429 | `AI_CAPACITY_REACHED` | All users together have reached today's assistant cap (300 messages, UTC) | `{ "resetsAt": "2026-10-17T00:00:00Z" }` |
 | 500 | `INTERNAL_ERROR` | An unexpected error on the server | — |
 | 503 | `SERVICE_UNAVAILABLE` | The database can't be reached | — |
+| 503 | `AI_UNAVAILABLE` | The assistant isn't set up, or the AI provider can't be reached | — |
 
 ## 3. Shared Schemas
 Fields marked `| null` are always present in responses, with the value `null` when empty.
@@ -136,6 +141,72 @@ A `Trip` plus all its activities (sorted as described in section 1):
 | `time` | `"HH:mm"` string \| null |
 | `notes` | string \| null |
 
+### ChatMessage
+One message in a trip's assistant conversation, as shown on screen.
+```json
+{
+  "id": "9b1e4c2d-7a3f-4e8b-b6d5-1c2e3f4a5b6c",
+  "role": "assistant",
+  "text": "Here's a relaxed Day 2 on the Left Bank, so you walk more than you travel.",
+  "suggestions": { "kind": "activities", "items": [ ] },
+  "createdAt": "2026-10-16T09:12:00Z"
+}
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | string (UUID) | |
+| `role` | `"user"` \| `"assistant"` | |
+| `text` | string | Plain text, possibly with line breaks. Shown as text, never as HTML |
+| `suggestions` | `Suggestions` \| `null` | Cards shown under an assistant message; always `null` for the user's messages |
+| `createdAt` | string (timestamp) | |
+
+### Suggestions
+Cards the assistant offers. Showing them never changes the trip; adding one is a normal `POST /trips/{tripId}/activities` (section 6.10).
+```json
+{
+  "kind": "activities",
+  "items": [
+    {
+      "day": 2,
+      "title": "Musée d'Orsay",
+      "time": "09:30",
+      "note": "Impressionist collection on level 5 first, before the crowds.",
+      "place": {
+        "name": "Musée d'Orsay",
+        "address": "1 Rue de la Légion d'Honneur, 75007 Paris",
+        "rating": 4.8,
+        "ratingCount": 98000,
+        "priceLevel": null,
+        "mapsUrl": "https://maps.google.com/?cid=1234567890"
+      }
+    }
+  ]
+}
+```
+| Field | Type | Notes |
+|-------|------|-------|
+| `kind` | `"activities"` \| `"hotels"` | |
+| `items` | array, 1–8 items | |
+| `items[].day` | integer \| `null` | Activities: 1 to the trip's number of days (the day the assistant chose). Hotels: `null` |
+| `items[].title` | string, 1–100 characters | Fits an activity's `title` |
+| `items[].time` | string (`HH:mm`) \| `null` | Suggested time. Hotels: `null` |
+| `items[].note` | string, at most 500 characters \| `null` | Fits an activity's `notes` |
+| `items[].place` | object \| `null` | The place, from Google Places; `null` for a suggestion that isn't one place (e.g. "Free evening") |
+| `place.name` | string | |
+| `place.address` | string \| `null` | |
+| `place.rating` | number (1.0–5.0) \| `null` | |
+| `place.ratingCount` | integer \| `null` | Number of reviews |
+| `place.priceLevel` | integer (1–4) \| `null` | Google's price level, 1 = inexpensive … 4 = very expensive. Shown on hotel cards |
+| `place.mapsUrl` | string (https URL) | Opens the place in Google Maps; on hotel cards it's the "Check prices" link |
+
+**Adding a card** sends `{ "dayNumber": <the day picked on the card>, "title": title, "time": time, "notes": note }` to `POST /trips/{tripId}/activities`.
+
+### ChatUsage
+How many assistant messages the user has left today (UTC).
+```json
+{ "dailyLimit": 20, "remainingToday": 14 }
+```
+
 ## 4. Validation Rules
 Both the frontend (Zod) and the backend (Pydantic + services) enforce these rules. Breaking any of them returns 400 `VALIDATION_ERROR` with a `details` entry for the field, except where noted.
 
@@ -154,10 +225,11 @@ Both the frontend (Zod) and the backend (Pydantic + services) enforce these rule
 | `title` | Required; 1–100 characters after trimming | "Enter a title." |
 | `time` | Optional; `HH:mm`, 24-hour (`^([01][0-9]\|2[0-3]):[0-5][0-9]$`), or `null` | "Use a time like 09:30." |
 | `notes` | Optional; at most 500 characters, or `null` | "Notes can be at most 500 characters." |
+| `text` (assistant message) | Required; 1–1,000 characters after trimming | "Type a message." / "Messages can be at most 1,000 characters." |
 
 **Note on "today":** The frontend checks against the user's local date. The server doesn't know the user's time zone, so it accepts any `startDate` ≥ (today in UTC − 1 day). This avoids rejecting valid trips for users ahead of or behind UTC.
 
-Other errors that aren't field validation: `USERNAME_TAKEN` (409), `INVALID_CREDENTIALS` (401), `ACTIVITIES_WOULD_BE_DELETED` (409).
+Other errors that aren't field validation: `USERNAME_TAKEN` (409), `INVALID_CREDENTIALS` (401), `ACTIVITIES_WOULD_BE_DELETED` (409), `CHAT_FULL` (409), `AI_LIMIT_REACHED` (429), `AI_CAPACITY_REACHED` (429).
 
 ## 5. Endpoint Summary
 | Method | Path | Auth | Description | Story |
@@ -174,9 +246,12 @@ Other errors that aren't field validation: `USERNAME_TAKEN` (409), `INVALID_CRED
 | POST | `/trips/{tripId}/activities` | Yes | Add an activity to a day | US5 |
 | PATCH | `/trips/{tripId}/activities/{activityId}` | Yes | Change an activity's title, time, or notes | US5 |
 | DELETE | `/trips/{tripId}/activities/{activityId}` | Yes | Delete an activity | US5 |
+| GET | `/trips/{tripId}/chat` | Yes | Get the trip's assistant conversation and today's message allowance | AI-US5 |
+| POST | `/trips/{tripId}/chat/messages` | Yes | Send a message to the assistant; the reply streams back | AI-US1–AI-US4 |
+| DELETE | `/trips/{tripId}/chat` | Yes | Start over: delete the trip's assistant conversation | AI-US5 |
 | GET | `/health` | No | Check that the API and database are up | — |
 
-All paths are relative to `/api/v1`. There is no PDF endpoint: the PDF is built in the browser from `GET /trips/{tripId}`.
+All paths are relative to `/api/v1`. The AI-US stories are in [ai-spec.md](./ai-spec.md#3-user-stories). There is no PDF endpoint: the PDF is built in the browser from `GET /trips/{tripId}`.
 
 ## 6. Endpoint Details
 
@@ -432,7 +507,91 @@ The updated `Activity`.
 | 401 | `UNAUTHORIZED` | Not logged in |
 | 404 | `NOT_FOUND` | No such trip or activity, the activity isn't in this trip, or the trip belongs to another user |
 
-### 6.13 `GET /health`
+### 6.13 `GET /trips/{tripId}/chat`
+- **Description:** Returns the trip's assistant conversation, oldest message first, and how many assistant messages the user has left today. A trip with no conversation yet returns an empty list.
+- **Auth required:** Yes
+- **Path params:** `tripId` (UUID)
+
+**Success response** — `200 OK`
+```json
+{
+  "messages": [ ],
+  "usage": { "dailyLimit": 20, "remainingToday": 14 }
+}
+```
+`messages` is a list of `ChatMessage`; `usage` is a `ChatUsage`.
+
+**Error responses**
+| Status | Code | Condition |
+|--------|------|-----------|
+| 401 | `UNAUTHORIZED` | Not logged in |
+| 404 | `NOT_FOUND` | No such trip, or it belongs to another user |
+
+### 6.14 `POST /trips/{tripId}/chat/messages`
+- **Description:** Sends the traveler's message to the assistant and streams the reply. The server first checks the limits, then calls the assistant.
+  - When the reply finishes, the traveler's message and the reply are saved together. If the stream stops early (the Stop button, a closed page, or an error), neither is saved.
+  - The message counts toward the daily limit as soon as the assistant is called, even if the reply is stopped.
+- **Auth required:** Yes
+- **Path params:** `tripId` (UUID)
+
+**Request body**
+```json
+{ "text": "On Sunday we want museums in the morning and something relaxed in the evening." }
+```
+
+**Success response** — `200 OK`, `Content-Type: text/event-stream`
+
+Each event is an `event:` line and a `data:` line with JSON, followed by a blank line:
+```
+event: status
+data: {"message":"Searching Google Places: art museums in Paris"}
+
+event: text
+data: {"delta":"Here's a relaxed "}
+
+event: suggestions
+data: {"kind":"activities","items":[ ]}
+
+event: done
+data: {"message":{ },"usage":{"dailyLimit":20,"remainingToday":13}}
+```
+
+| Event | Data | Meaning |
+|-------|------|---------|
+| `status` | `{ "message": string }` | What the assistant is doing, e.g. searching. Shown as a grey line; each one replaces the last |
+| `text` | `{ "delta": string }` | The next piece of the reply; append it to the reply text |
+| `suggestions` | `Suggestions` | Cards for this reply; at most one per reply |
+| `done` | `{ "message": ChatMessage, "usage": ChatUsage }` | The saved assistant message, with its final text and suggestions. The stream ends |
+| `error` | The standard error body, `{ "error": { "code", "message", "details" } }` | Something failed after the stream started (`AI_UNAVAILABLE` or `INTERNAL_ERROR`). Nothing is saved. The stream ends |
+
+Every stream ends with exactly one `done` or `error` event.
+
+**Error responses** (sent as normal JSON, before any stream starts)
+| Status | Code | Condition |
+|--------|------|-----------|
+| 400 | `VALIDATION_ERROR` | `text` is missing, empty, or longer than 1,000 characters |
+| 401 | `UNAUTHORIZED` | Not logged in |
+| 404 | `NOT_FOUND` | No such trip, or it belongs to another user |
+| 409 | `CHAT_FULL` | The conversation already has 60 messages |
+| 429 | `AI_LIMIT_REACHED` | The user has used today's 20 messages |
+| 429 | `AI_CAPACITY_REACHED` | Everyone together has used today's 300 messages |
+| 503 | `AI_UNAVAILABLE` | The assistant isn't set up, or the AI provider can't be reached |
+
+### 6.15 `DELETE /trips/{tripId}/chat`
+- **Description:** "Start over": deletes the trip's assistant conversation. Activities that were added from it stay. It doesn't give back any of today's messages. Deleting a conversation that's already empty also succeeds.
+- **Auth required:** Yes
+- **Path params:** `tripId` (UUID)
+- **Request body:** None (still send `Content-Type: application/json`)
+
+**Success response** — `204 No Content`
+
+**Error responses**
+| Status | Code | Condition |
+|--------|------|-----------|
+| 401 | `UNAUTHORIZED` | Not logged in |
+| 404 | `NOT_FOUND` | No such trip, or it belongs to another user |
+
+### 6.16 `GET /health`
 - **Description:** Confirms the API is running and can reach the database. Used to check deployments.
 - **Auth required:** No
 
@@ -452,7 +611,11 @@ The updated `Activity`.
   - **The browser closes.** The cookie has no expiry date, so the browser deletes it.
   - **12 hours without any request** (idle timeout on the server). While the user is active, the server keeps pushing this back, at most once an hour. There is no new `Set-Cookie` when this happens, because the cookie itself has no expiry.
   - **The user clicks Log out.**
-- **Rate limits:** None in the MVP, including on login, beyond Vercel's built-in protection. Limiting repeated failed logins is future work (see [goal-spec.md](./goal-spec.md#8-future-enhancements-post-mvp)); when added, it will use a new `429` error code, which doesn't need a new API version.
+- **Assistant limits:**
+  - Each user may send **20** assistant messages per day, and all users together **300** per day. Both reset at midnight UTC. Over the limit → 429 (`AI_LIMIT_REACHED` / `AI_CAPACITY_REACHED`).
+  - A trip's conversation holds at most **60** messages (30 exchanges) → 409 `CHAT_FULL`.
+  - A message is at most 1,000 characters.
+- **Rate limits:** None besides the assistant limits, including on login, beyond Vercel's built-in protection. Limiting repeated failed logins is future work (see [goal-spec.md](./goal-spec.md#8-future-enhancements-post-mvp)); when added, it will use a new `429` error code, which doesn't need a new API version.
 
 ## 8. Open Questions
 - None right now.
@@ -464,9 +627,12 @@ The updated `Activity`.
 | Can an activity be moved to another day? | Not in the MVP. `dayNumber` is set when the activity is created and can't be changed; to move one, delete it and add it again on the other day |
 | In what order are trips returned? | By `startDate` (earliest first), then `createdAt`. The frontend groups them into upcoming and past |
 | Do trips have a name? | No. A trip is identified by its destination and dates (from the mockups) |
+| Why does the assistant's reply stream instead of returning JSON? | So the reply appears as it's written, and a long reply doesn't hit a request timeout. It's Server-Sent Events over a `POST`, read in the browser with `fetch` (section 6.14) |
+| Does adding a suggestion need a new endpoint? | No. It uses `POST /trips/{tripId}/activities`, so the assistant can never change a trip on its own |
 
 ## 9. Changelog
 | Date | Version | Change |
 |------|---------|--------|
 | 2026-10-04 | v1 | Initial contract: auth, trips, activities, health |
 | 2026-10-05 | v1 | Signup accepts an optional `name`; `User` includes `name` (string or `null`). Kept as v1: the app isn't released yet, and the frontend and backend change together |
+| 2026-10-16 | v1 | Trip assistant: `GET` and `DELETE /trips/{tripId}/chat`, streamed `POST /trips/{tripId}/chat/messages`; schemas `ChatMessage`, `Suggestions`, `ChatUsage`; errors `CHAT_FULL`, `AI_LIMIT_REACHED`, `AI_CAPACITY_REACHED`, `AI_UNAVAILABLE`; health moves to 6.16. Kept as v1: only new endpoints |

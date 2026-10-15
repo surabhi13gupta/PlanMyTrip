@@ -1,6 +1,6 @@
 # AI Spec — PlanMyTrip Trip Assistant
 
-> Status: Draft (decisions made; ready for review) | Owner: Surabhi Gupta | Last updated: 2026-10-16
+> Status: Approved (preview v2); merged into the other specs | Owner: Surabhi Gupta | Last updated: 2026-10-16
 > Related: [goal-spec.md](./goal-spec.md), [frontend-spec.md](./frontend-spec.md), [backend-spec.md](./backend-spec.md), [api-contract-spec.md](./api-contract-spec.md)
 
 ## 1. Overview
@@ -118,13 +118,12 @@ Claude Messages API  ──(MCP connector, HTTPS + bearer token)──►  planm
       "title": "Louvre Museum",
       "time": "09:30",
       "note": "Book timed entry; start with the Denon wing.",
-      "place": { "name": "Musée du Louvre", "address": "Rue de Rivoli, Paris", "url": "https://…", "source": "google_places" },
-      "hotel": null
+      "place": { "name": "Musée du Louvre", "address": "Rue de Rivoli, 75001 Paris", "rating": 4.7, "ratingCount": 310000, "priceLevel": null, "mapsUrl": "https://maps.google.com/?cid=…" }
     }
   ]
 }
 ```
-`day` (1 to the trip's number of days) is required for activities and omitted for hotels; the backend rejects a day outside the trip. `time` is optional (`HH:mm`). `hotel` (for `kind: "hotels"`) holds `rating`, `ratingCount`, `priceLevel` (Google's 1–4 scale, or null), and `mapsUrl`. The backend validates the input against the schema before forwarding it; invalid input is returned to the model as an error tool result.
+`day` (1 to the trip's number of days) is required for activities and `null` for hotels; the backend rejects a day outside the trip. `time` is optional (`HH:mm`). The full field list is the `Suggestions` schema in [api-contract-spec.md §3](./api-contract-spec.md#suggestions); this tool's input schema matches it, so the backend forwards it as is. The backend validates the input against the schema before forwarding it; invalid input is returned to the model as an error tool result.
 
 ## 7. MCP server: `planmytrip-search`
 - **Location:** new top-level folder `mcp/` (Python 3.14, `uv`, the official MCP Python SDK), deployed as its own Vercel service, served at `https://<site>/mcp` over **Streamable HTTP**.
@@ -201,11 +200,11 @@ Claude Messages API  ──(MCP connector, HTTPS + bearer token)──►  planm
 - **Vercel limits:** chat requests stream for up to ~60 seconds; set the backend function's maximum duration accordingly.
 
 ## 11. API contract additions
-(To be merged into [api-contract-spec.md](./api-contract-spec.md) once this spec is approved. All require login and ownership of the trip; another user's trip is 404.)
+(Merged into [api-contract-spec.md](./api-contract-spec.md), which is the source of truth for exact shapes (sections 2–7). Summary below. All require login and ownership of the trip; another user's trip is 404.)
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/trips/{tripId}/chat` | The trip conversation's displayable history: `{ "messages": [{ "id", "role", "text", "cards": [...], "createdAt" }] }` |
+| GET | `/trips/{tripId}/chat` | The trip conversation's displayable history: `{ "messages": [ChatMessage], "usage": { "dailyLimit", "remainingToday" } }` |
 | POST | `/trips/{tripId}/chat/messages` | Body `{ "text": "…" }`. Response is a **Server-Sent Events** stream (`Content-Type: text/event-stream`) |
 | DELETE | `/trips/{tripId}/chat` | "Start over": deletes the conversation |
 
@@ -214,11 +213,11 @@ Claude Messages API  ──(MCP connector, HTTPS + bearer token)──►  planm
 |---|---|
 | `status` | `{ "message": "Searching places in Paris…" }` |
 | `text` | `{ "delta": "…" }` (append to the current reply) |
-| `cards` | The validated `present_suggestions` input (section 6) |
-| `done` | `{ "messageId": "…", "usage": { "remainingToday": 42 } }` |
-| `error` | Standard error shape, e.g. `AI_UNAVAILABLE`, `AI_LIMIT_REACHED`, `SEARCH_UNAVAILABLE` |
+| `suggestions` | The validated `present_suggestions` input (section 6) |
+| `done` | `{ "message": ChatMessage, "usage": { "dailyLimit": 20, "remainingToday": 13 } }` |
+| `error` | Standard error shape, e.g. `AI_UNAVAILABLE`. Limits are checked before the stream starts, as normal 429 responses |
 
-New error codes: `AI_LIMIT_REACHED` (429, the user's daily limit), `AI_CAPACITY_REACHED` (429, the global daily cap), `AI_UNAVAILABLE` (503, model or network failure), `SEARCH_UNAVAILABLE` (in-stream only; the reply still completes with an apology). Adding suggestions uses the **existing** `POST /trips/{tripId}/activities` — no new write endpoint.
+New error codes: `AI_LIMIT_REACHED` (429, the user's daily limit), `AI_CAPACITY_REACHED` (429, the global daily cap), `AI_UNAVAILABLE` (503, model or network failure), `CHAT_FULL` (409, 60 messages; Start over). A failed search has no error code: the assistant says search isn't working right now. Adding suggestions uses the **existing** `POST /trips/{tripId}/activities` — no new write endpoint.
 
 ## 12. Safety and privacy
 - **The model can't write data.** Its only tools are read-only search and `present_suggestions`. Adding an activity always takes a user click through the existing API. This also limits what a prompt injection inside a search result could do.
@@ -265,4 +264,5 @@ Search costs stay at $0 within the providers' free allowances for personal use. 
 |---|---|
 | 2026-10-16 | First draft: per-day assistant, `planmytrip-search` MCP server (places + hotels), provider options |
 | 2026-10-16 | Open questions resolved: Sonnet 5.5, Google Places for places and hotels (no prices), 20 messages/user/day, separate hotel chat, global cap of 300/day |
+| 2026-10-16 | Merged into goal, frontend, backend, and API contract specs; card fields aligned with the contract's `Suggestions` schema (`place.mapsUrl`, `rating`, `priceLevel`); stream event `cards` renamed `suggestions`; `SEARCH_UNAVAILABLE` dropped; `CHAT_FULL` added |
 | 2026-10-16 | After preview v2: one trip assistant instead of per-day and hotel chats; free-form requests, `day` on each suggestion, day picker, quick-start prompts; endpoints `/trips/{tripId}/chat`; `chat_key` removed; conversation cap 60 |

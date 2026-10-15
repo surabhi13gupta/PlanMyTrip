@@ -1,11 +1,11 @@
 # Frontend Spec — PlanMyTrip
 
-> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-04
-> Related: [goal-spec.md](./goal-spec.md), [api-contract-spec.md](./api-contract-spec.md)
+> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-16
+> Related: [goal-spec.md](./goal-spec.md), [api-contract-spec.md](./api-contract-spec.md), [ai-spec.md](./ai-spec.md)
 
 ## 1. Overview
 <!-- Purpose of the frontend and how it serves the goals. -->
-The frontend is a responsive single-page app (SPA) that runs in the browser. It lets a user sign up, create trips, plan activities for each day, and print the itinerary as a PDF (goals G1–G4). Page layouts follow the hand-drawn mockups: [first screen and new trip screen](./mockups/first-and-new-trip-screens.jpg), and [saved trip](./mockups/saved-trip-screen.jpg). The mockups set the layout only; colors and type come from section 10, and the app is called PlanMyTrip (not the "Musafir Travels" written on the sketch). It talks to the backend only through the REST API in [api-contract-spec.md](./api-contract-spec.md). The PDF is generated entirely in the browser, so exporting needs no server call.
+The frontend is a responsive single-page app (SPA) that runs in the browser. It lets a user sign up, create trips, plan activities for each day, and print the itinerary as a PDF (goals G1–G4). Page layouts follow the hand-drawn mockups: [first screen and new trip screen](./mockups/first-and-new-trip-screens.jpg), and [saved trip](./mockups/saved-trip-screen.jpg). The mockups set the layout only; colors and type come from section 10, and the app is called PlanMyTrip (not the "Musafir Travels" written on the sketch). It talks to the backend only through the REST API in [api-contract-spec.md](./api-contract-spec.md). The PDF is generated entirely in the browser, so exporting needs no server call. On the Trip Page, a **trip assistant** (an AI chat for the whole trip) suggests activities and hotels, which the user adds with one click. Its behavior is specified in [ai-spec.md](./ai-spec.md), and its frontend parts in section 4.8.
 
 Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glossary in [goal-spec.md](./goal-spec.md#13-glossary).
 
@@ -32,7 +32,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `/login` | Login | No | Log in | US2 |
 | `/trips` | My Trips (home) | Yes | Welcome, "Add new trip", and the user's trip plans | US4 |
 | `/trips/new` | New Trip | Yes | "Plan a new trip" form | US3 |
-| `/trips/:tripId` | Trip Page | Yes | A trip's days and activities, plus Print, Delete, and Edit | US5, US6, US7 |
+| `/trips/:tripId` | Trip Page | Yes | A trip's days and activities, plus Print, Delete, Edit, and the trip assistant | US5–US8 |
 | `/trips/:tripId/edit` | Edit Trip | Yes | Change the trip's dates, destination, or Trip Type | US7 |
 | `*` | Not Found | No | 404 page with a link back to My Trips | — |
 
@@ -40,6 +40,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - A logged-out user who opens a page that needs login is sent to `/login?redirect=<original path>`. After logging in, they go back to that path.
 - A logged-in user who opens `/login` or `/signup` is sent to `/trips`.
 - A trip that doesn't exist, or that belongs to another user, shows the Not Found page (the API returns 404 in both cases).
+- The trip assistant has no route of its own: it opens as a panel on the Trip Page (section 4.8).
 
 ## 4. Page Details
 
@@ -87,16 +88,17 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Route:** `/trips/:tripId`
 - **Purpose:** Plan activities for each day (US5), print the itinerary (US6), and edit or delete the trip (US7). This one page covers both the "Day 1 … Day N" and the "Saved trip" sketches.
 - **Layout / sections** (follows the "Saved trip" sketch):
-  1. **Trip header:** the destination as the page title, "From Oct 10 → To Oct 14, 2026 · 5 days" below it, the Trip Type badge, and a small **"Edit"** link that opens `/trips/:tripId/edit`.
+  1. **Trip header:** the destination as the page title, "From Oct 10 → To Oct 14, 2026 · 5 days" below it, the Trip Type badge, a small **"Edit"** link that opens `/trips/:tripId/edit`, and a **"Plan with assistant"** button that opens the trip assistant (section 4.8). Day cards have no assistant button.
   2. **Day chips:** a strip of chips ("Day 1 · Oct 10", …) that scrolls sideways on mobile. Clicking a chip scrolls to that day.
   3. **Days:** a `DayCard` for each day, from Day 1 to Day N, stacked vertically. Each card lists its activities and has an "+ Add activity" button.
   4. **Action bar** at the bottom: **"Print"** (main button) and **"Delete"** (danger button). On mobile, the bar sticks to the bottom of the screen, so both are always reachable even on a 14-day trip.
-- **Components used:** `AppLayout`, `TripHeader`, `DayNav`, `DayCard`, `ActivityItem`, `ActivityForm`, `TripActions`, `ConfirmDialog`, `PrintButton`
-- **Data needed (API calls):** `GET /trips/:tripId` (the trip with its activities), `POST /trips/:tripId/activities`, `PATCH /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId`
+- **Components used:** `AppLayout`, `TripHeader`, `DayNav`, `DayCard`, `ActivityItem`, `ActivityForm`, `TripActions`, `ConfirmDialog`, `PrintButton`, `AssistantPanel`
+- **Data needed (API calls):** `GET /trips/:tripId` (the trip with its activities), `POST /trips/:tripId/activities`, `PATCH /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId`, and the assistant's calls (section 4.8)
 - **User interactions:**
   - **Add:** "+ Add activity" opens an `ActivityForm` inside that day's card (title, optional time, optional notes). Save or Cancel.
   - **Edit an activity:** Clicking an activity's edit icon replaces it with an `ActivityForm` that is already filled in.
   - **Delete an activity:** The delete icon opens a `ConfirmDialog` ("Delete 'Visit the Louvre'?").
+  - **Plan with assistant:** opens the trip assistant (section 4.8). Activities added from it appear in their day's card straight away.
   - **Print:** Builds the itinerary PDF in the browser and downloads it (section 7, flow 3). It does not open the browser's print window.
   - **Delete the trip:** Opens a `ConfirmDialog`: "Delete your trip to Paris, France (Oct 10 – Oct 14)? All its activities will be deleted too. This can't be undone." On success, go to `/trips` with a toast.
   - **Sort:** Within a day, activities with a time appear first, in time order. Activities without a time follow, in the order they were created (the `sortActivities` helper).
@@ -120,6 +122,33 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Purpose:** Handle unknown or inaccessible URLs.
 - **Layout / sections:** The mountain banner, then a "Page not found" message with a link to My Trips.
 
+### 4.8 Trip assistant (panel on the Trip Page)
+- **Purpose:** One AI conversation for the whole trip: the user asks in their own words, gets activity and hotel suggestions, and adds activities with one click (US8; [ai-spec.md §3–4](./ai-spec.md#3-user-stories)). The approved design is preview v2 of the assistant panel.
+- **Opens from:** the **"Plan with assistant"** button in the trip header.
+- **Layout / sections:**
+  - **Laptops (`lg`, 1024px and up):** a 440px panel docked on the right, with the day plan still visible on the left. While it's open, the page's content width grows from `max-w-5xl` to `max-w-7xl` so both fit.
+  - **Smaller screens:** a bottom sheet over the Trip Page, from just below the banner to the bottom of the screen, with a grab handle. Closing it returns to the plan.
+  - **Header:** "Trip assistant", the destination and dates, **Start over**, and close (✕). Start over asks first with a `ConfirmDialog`: "Start over? This deletes the conversation. Activities you added stay."
+  - **Quick-start prompts** under the header: "Plan a day", "Where to stay", "Rainy-day ideas", "Fill empty days". Tapping one puts a starter request in the message box; nothing is sent until the user taps Send.
+  - **Messages:** the user's on the right (`primary` bubbles, white text), the assistant's on the left (white bubbles with a `line` border), on a `chat-bg` background. The reply appears word by word as it streams. A grey status line shows what the assistant is doing ("Searching Google Places: art museums in Paris").
+  - **Activity cards:** time, title, note, address, rating, and a "Google Maps" link. Each card has a **day picker** (preset to the assistant's day; lists Day 1 … Day N with dates) and an **Add to Day N** button that follows the picker.
+    - After adding: the button shows "✓ Added to Day N" (green), and the activity appears in that day's card, which is briefly highlighted.
+    - **Add all** adds every card in that reply to its picked day.
+    - A card whose title already exists on the picked day shows "✓ On Day N" instead of Add, so reopening the conversation doesn't invite duplicates.
+    - A card for a day that's no longer in the trip shows "Day no longer in trip".
+  - **Hotel cards:** name, area, rating with the number of reviews, price level ("$$ · moderate"), a note, and **Check prices ↗**, which opens Google Maps in a new tab. Hotel cards have no Add button.
+  - **Message box:** up to 1,000 characters; Enter sends, Shift+Enter adds a line. While a reply streams, Send becomes **Stop**. Below the box: "Your trip details are sent to our AI provider to plan your trip." and "14 of 20 left today".
+- **Components used:** `AssistantPanel`, `QuickPrompts`, `ChatMessageList`, `SuggestionCard`, `HotelCard`, `DayPicker`, `ChatInput`, `ConfirmDialog`
+- **Data needed (API calls):** `GET /trips/:tripId/chat` when the panel first opens; `POST /trips/:tripId/chat/messages` (streamed) to send; `DELETE /trips/:tripId/chat` for Start over; `POST /trips/:tripId/activities` for Add (the same call as "+ Add activity").
+- **Streaming:** The browser's `EventSource` only supports `GET`, so the app reads the `POST` response with `fetch` and a stream reader and splits it into events (`src/lib/sse.ts`). Stop cancels the request (`AbortController`); the partial reply disappears, and nothing is saved.
+- **Loading / empty / error states:**
+  - While the conversation loads: three grey placeholder bubbles.
+  - An empty conversation shows a greeting written by the frontend from the trip and `greetingName(user)` ("Hi Surabhi! Your Paris trip has 5 days, and Days 2–4 are still open…"), plus the quick-start prompts. No API call is needed for it.
+  - An `error` event, or 503 `AI_UNAVAILABLE`: an inline message in the chat, "The assistant isn't available right now. Try again in a moment.", with **Retry**, which resends the same text.
+  - 429 `AI_LIMIT_REACHED`: the message box is disabled with "You've used today's 20 assistant messages. They reset at midnight UTC." 429 `AI_CAPACITY_REACHED`: "The assistant is fully booked for today. Please try again tomorrow."
+  - 409 `CHAT_FULL`: "This conversation is full. Start over to keep planning.", with a Start over button.
+  - If adding a card fails: a toast, and the card's button goes back to Add.
+
 ## 5. Component Inventory
 | Component | Responsibility | Props | Used In |
 |-----------|----------------|-------|---------|
@@ -134,7 +163,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `TripForm` | New/edit trip form (From, To, Destination, Trip Type); shows live trip length | `defaultValues?`, `onSubmit`, `submitLabel`, `isSubmitting` | New Trip, Edit Trip |
 | `TripTypePicker` | Four-option selector for Trip Type | `value`, `onChange` | `TripForm` |
 | `TripCard` | One trip in the list: destination, dates, Trip Type | `trip` | My Trips |
-| `TripHeader` | Destination, dates, Trip Type badge, and Edit link | `trip` | Trip Page |
+| `TripHeader` | Destination, dates, Trip Type badge, Edit link, and the Plan with assistant button | `trip`, `onOpenAssistant` | Trip Page |
 | `DayNav` | Horizontal day chips that scroll to a day | `days` | Trip Page |
 | `DayCard` | One day: heading, sorted activities, add button | `day`, `activities`, `tripId` | Trip Page |
 | `ActivityItem` | Shows one activity with edit/delete icons | `activity`, `onEdit`, `onDelete` | `DayCard` |
@@ -143,6 +172,13 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `ConfirmDialog` | Accessible confirmation dialog (native `<dialog>`) | `open`, `title`, `message`, `confirmLabel`, `onConfirm`, `onCancel`, `destructive?` | Trip Page, Edit Trip |
 | `PrintButton` | "Print": lazy-loads the PDF library, builds the PDF, downloads it | `trip`, `activities` | `TripActions` |
 | `ItineraryPdf` | The PDF layout (react-pdf document) | `trip`, `days`, `activities` | `PrintButton` |
+| `AssistantPanel` | The trip assistant: side panel on `lg` and up, bottom sheet below; header, prompts, messages, input (section 4.8) | `trip`, `activities`, `open`, `onClose` | Trip Page |
+| `QuickPrompts` | Starter-request chips that fill the message box | `onPick` | `AssistantPanel` |
+| `ChatMessageList` | Messages, the streaming reply, the status line, and cards | `messages`, `streaming`, `trip`, `activities` | `AssistantPanel` |
+| `SuggestionCard` | One activity suggestion with `DayPicker` and Add | `item`, `trip`, `activities`, `onAdd` | `ChatMessageList` |
+| `HotelCard` | One hotel suggestion with Check prices | `item` | `ChatMessageList` |
+| `DayPicker` | A select of Day 1 … Day N with their dates | `days`, `value`, `onChange`, `label` | `SuggestionCard` |
+| `ChatInput` | Message box with Send / Stop and the "left today" line | `onSend`, `onStop`, `streaming`, `usage`, `disabledReason?` | `AssistantPanel` |
 | `EmptyState` | Message + optional action button | `title`, `message`, `action?` | My Trips |
 | `Skeleton` / `Spinner` | Loading placeholders | — | Many |
 | `ErrorState` | Error message with Retry | `message`, `onRetry` | Many |
@@ -150,9 +186,10 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ## 6. State Management
 - **Global state:** None. The logged-in user comes from the `['me']` query (`GET /auth/me`); `useAuth()` reads it. Nothing else needs to be shared across pages.
 - **Server state / caching (TanStack Query):**
-  - Query keys: `['me']`, `['trips']`, `['trip', tripId]`
+  - Query keys: `['me']`, `['trips']`, `['trip', tripId]`, `['chat', tripId]`
   - After creating, editing, or deleting a trip, the app refreshes `['trips']` and `['trip', tripId]`.
   - After adding, editing, or deleting an activity, the app refreshes `['trip', tripId]`. These changes are not shown before the server confirms them, because that's simpler and the API is fast enough.
+  - The assistant's conversation and usage are `['chat', tripId]`, loaded when the panel first opens. The reply being streamed lives in the `useAssistantChat` hook's state. On `done`, the user's message and the saved reply are added to the cached conversation, and `usage` is updated; Start over empties it. Adding a card uses the existing activity mutation, so `['trip', tripId]` refreshes and the day card shows the new activity.
   - On logout, the app clears the whole query cache.
 - **Local / persisted state:** Form state lives in React Hook Form. The login session is held in a cookie (section 8). The only thing the app stores in the browser is a `pmt-tab-logged-in` marker in **sessionStorage** (section 8), which says "this tab has logged in". Nothing is stored in localStorage.
 
@@ -181,6 +218,12 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 6. **Session expired**
    1. Any API call returns 401
    2. The app clears the cache and sends the user to `/login?redirect=<current path>` with a toast: "Please log in again."
+7. **Planning with the assistant**
+   1. On the Trip Page, clicks "Plan with assistant" → the panel opens with a greeting and quick-start prompts
+   2. Types "On Sunday we want museums in the morning and something relaxed in the evening" → Send
+   3. A status line shows the search, then the reply streams in with four cards preset to Day 2 (Sunday)
+   4. Changes the cruise card's day to Day 4, then clicks "Add all" → each activity appears in its day's card
+   5. Asks "Where should we stay?" → hotel cards with "Check prices" links
 
 ## 8. Authentication (Client Side)
 - **Login / signup flow:** On success, the backend sets the session cookie and returns the user. The frontend stores that user in the `['me']` query and navigates.
@@ -206,6 +249,7 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
 | Login | username, password | Both required (no other rules, so the form gives no hints about valid usernames) |
 | Trip (create/edit) | startDate (From), endDate (To), destination, tripType | destination: required, 1–100 characters, trimmed. startDate, endDate: required, valid dates. startDate ≥ today (the user's local date) when creating; when editing, only if the start date was changed, so a trip that has already started can still be edited. endDate ≥ startDate. Trip length (both dates counted) ≤ 14 days. tripType: one of `solo`, `couple`, `family`, `friends` |
 | Activity | title, time, notes | title: required, 1–100 characters, trimmed. time: optional, `HH:mm` (24-hour). notes: optional, ≤ 500 characters |
+| Assistant message | text | text: required, 1–1,000 characters after trimming ("Type a message.", "Messages can be at most 1,000 characters."). A character count appears from 900 characters |
 
 - Errors appear under the field once the user leaves it, and on every field when they submit.
 - Server validation errors (400 with a list of field errors) are shown on the matching fields.
@@ -227,11 +271,14 @@ Each form's rules are written as a Zod schema in `src/lib/schemas.ts`. The backe
   | `line` | `#E5D9C8` | Card borders and dividers (decorative) |
   | `field-border` | `#8C7B66` | Input and checkbox borders (dark enough to see clearly) |
   | `danger` | `#B91C1C` | Delete buttons, error messages |
+  | `ok` | `#1E6B45` | "Added" confirmations on assistant cards, the assistant's status dot (dark green) |
+  | `ok-soft` | `#E2F1E8` | Background of "✓ Added" buttons; the brief highlight on a day card |
+  | `chat-bg` | `#FBF8F3` | Background of the assistant's message area |
 
   - Main buttons are `primary` with white text. Secondary buttons are white with a `primary` border and text.
-  - **Contrast checks (WCAG AA):** `primary` on white 11.5:1, on `sand` 9.8:1; `muted` on white 6.3:1, on `sand` 5.4:1; `field-border` on white 4.1:1 (form borders need at least 3:1); `danger` on white 6.5:1. `line` is used only for decoration, never as the only way to see a control.
+  - **Contrast checks (WCAG AA):** `primary` on white 11.5:1, on `sand` 9.8:1; `muted` on white 6.3:1, on `sand` 5.4:1; `field-border` on white 4.1:1 (form borders need at least 3:1); `danger` on white 6.5:1; `ok` on `ok-soft` 5.5:1, on white 6.5:1; `ink` on `chat-bg` 13.8:1. `line` is used only for decoration, never as the only way to see a control.
 - **Typography:** Fira Sans (the logo's cursive "My" uses Dancing Script, section 10.1), self-hosted through the `@fontsource/fira-sans` npm package (no request to Google Fonts), in weights 400 (body), 500 (labels, buttons), and 600 (headings). Fallback: `system-ui, sans-serif`. Base text 16px, so mobile browsers don't zoom into form fields. Headings use `text-2xl` and `text-xl` with `font-semibold` in `primary`.
-- **Spacing / grid:** Tailwind's spacing scale. Page content is centered at most `max-w-5xl`; forms are at most `max-w-xl`. Side padding is 16px on mobile and 24px on desktop.
+- **Spacing / grid:** Tailwind's spacing scale. Page content is centered at most `max-w-5xl` (`max-w-7xl` while the assistant panel is open on `lg` and up); forms are at most `max-w-xl`. Side padding is 16px on mobile and 24px on desktop.
 - **Light / dark mode:** Light only in the MVP. Dark mode is a post-MVP item.
 - **Responsive breakpoints:** Built mobile-first with Tailwind's default breakpoints (`sm` 640px, `md` 768px, `lg` 1024px). Every screen must work at 375px wide with no sideways scrolling, except the day chips, which scroll sideways on purpose.
 - **Touch targets:** At least 44×44px on mobile.
@@ -268,6 +315,7 @@ Every page starts with the same banner: a mountain photo across the top, with th
 - **Keyboard navigation:** Everything works by keyboard. Focus is always visible (`focus-visible` rings). Dialogs keep focus inside while open and give it back afterwards; the native `<dialog>` does this. Escape closes dialogs and inline forms.
 - **Screen reader considerations:** Every input has a `<label>`. Field errors are linked with `aria-describedby`. Icon-only buttons have an `aria-label` (e.g. "Edit Visit the Louvre"). Each page has one `<h1>`, and each day uses `<h2>`. Toasts are announced through a live region.
 - **Color:** Text contrast is at least 4.5:1. Errors are never shown by color alone. White text on the banner relies on the gradient (section 10.1) for its contrast.
+- **Trip assistant:** On smaller screens the sheet is a dialog (`role="dialog"`, labelled "Trip assistant") that keeps focus inside and closes on Escape. On laptops the docked panel is a labelled `<aside>`, and focus moves to the message box when it opens. The message list is a polite live region that announces each finished reply once, not every word. Buttons name their target ("Add Musée d'Orsay to Day 2"), and each day picker is labelled ("Day for Musée d'Orsay"). Links to Google Maps say they open in a new tab.
 - **Banner and logo:** The banner photo is decorative: an `<img>` with empty `alt=""`, so screen readers skip it. The logo link's accessible name is "PlanMyTrip, home"; the SVG mark itself is hidden from screen readers. On Login and Signup, the form sits directly on the `sand` background: input borders (`field-border`) still meet the 3:1 minimum against it (3.5:1).
 
 ## 12. Error Handling & Notifications
@@ -277,6 +325,7 @@ Every page starts with the same banner: a mountain photo across the top, with th
   - 401 `INVALID_CREDENTIALS`: the login form's "Invalid username or password." message
   - 404: Not Found page
   - 409: shown on the related field (e.g. username taken), or the shortening warning on Edit Trip (`ACTIVITIES_WOULD_BE_DELETED`)
+  - The assistant's errors (409 `CHAT_FULL`, 429 `AI_LIMIT_REACHED` / `AI_CAPACITY_REACHED`, 503 `AI_UNAVAILABLE`, and `error` events): shown inside the assistant panel, not as toasts (section 4.8)
   - 503: toast "The service is starting up or unavailable. Please try again in a moment."
   - 5xx or network error: toast "Something went wrong. Please try again."
 - **Toasts / banners:** Success toasts for creating, editing, and deleting trips. Error toasts for saves that fail. Saving activities shows no success toast, because the change on screen is confirmation enough.
@@ -288,13 +337,14 @@ Every page starts with the same banner: a mountain photo across the top, with th
 - **Fallback / error boundary:** Each route has a React Router `errorElement` for unexpected crashes, with a "Reload" button.
 
 ## 13. Performance
-- **Code splitting / lazy loading:** `@react-pdf/renderer` is loaded with `import()` only when the user clicks Print, keeping it out of the initial bundle. Pages are lazy-loaded per route.
+- **Code splitting / lazy loading:** `@react-pdf/renderer` is loaded with `import()` only when the user clicks Print, keeping it out of the initial bundle. Pages are lazy-loaded per route. The assistant panel's code is lazy-loaded the first time it opens.
 - **Image optimization:** The banner photo is the only image. It's imported through Vite (fingerprinted, cached long-term), given its width and height so the page doesn't jump while it loads, and marked `fetchpriority="high"`, since it's the largest thing on screen (it decides LCP). It must stay under 250 KB. Icons and the logo are inline SVG.
 - **Targets:** Initial JavaScript ≤ 200 KB gzipped (not counting the PDF library). LCP < 2.5s on simulated 4G.
 
 ## 14. Testing Strategy
-- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
+- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), `lib/sse.ts` (events split across chunks, several events in one chunk), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
 - **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day), the Edit Trip warning dialog, and `ProtectedRoute` redirects. API calls are mocked with MSW.
+- **Assistant:** `useAssistantChat` and `AssistantPanel`, with MSW returning a scripted event stream. Covers: the reply appears as it streams; Stop removes the partial reply; cards are preset to the right day; the day picker changes the Add target; Add and Add all call the activities API; "✓ On Day N" for titles already on that day; and the limit, full, and unavailable states.
 - **End-to-end — future scope (parked):** The Playwright tests are written but commented out in `e2e/planmytrip.spec.ts`, and the `npm run e2e` script is removed, because Chromium's system libraries aren't installed on this machine. To bring them back: run `sudo npx playwright install-deps chromium`, uncomment the file, and restore the script. Until then, the flows below are checked by hand in the browser. What they cover: one test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px. A second test: refresh keeps the user logged in; closing the page with an unsaved activity, then reopening, asks for login and shows the activity saved.
 
 ## 15. Project Structure
@@ -314,7 +364,8 @@ frontend/                 # vercel.json lives at the repository root (see backen
                           # Content-Type: application/json on every POST/PATCH/DELETE
       auth.ts             # signup, login, logout, me
       trips.ts            # trips + activities calls
-    hooks/                # useAuth, useTrips, useTrip, useActivityMutations
+      chat.ts             # assistant: history, streamed send, Start over
+    hooks/                # useAuth, useTrips, useTrip, useActivityMutations, useAssistantChat
     pages/                # SignupPage, LoginPage, TripsPage, NewTripPage,
                           # TripPlanPage, EditTripPage, NotFoundPage
     components/           # components from section 5
@@ -325,8 +376,9 @@ frontend/                 # vercel.json lives at the repository root (see backen
       dates.ts
       activities.ts       # sortActivities, countActivitiesBeyondDay
       schemas.ts          # Zod schemas
+      sse.ts              # splits a streamed response into events
     types/
-      index.ts            # User, Trip, Activity, TripType (match API shapes)
+      index.ts            # User, Trip, Activity, TripType, ChatMessage, Suggestions, ChatUsage (match API shapes)
   tests/                  # Vitest setup, MSW handlers
   e2e/                    # Playwright tests (parked, commented out: future scope)
 ```
@@ -348,6 +400,8 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 ### Resolved
 | Question | Decision |
 |----------|----------|
+| One assistant per day, or one for the whole trip? | **One for the whole trip:** a single "Plan with assistant" button in the trip header. The assistant works out the day, and each card has a day picker (preview v2; [ai-spec.md](./ai-spec.md)) |
+| Where does the assistant open? | A **docked side panel** on laptops (`lg` and up), a **bottom sheet** on smaller screens (section 4.8) |
 | Banner photo: the 700×350 `mountains.jpg`, or a larger one? | First the Seiser Alm photo (Unsplash); then **Mount Fuji with the Chureito Pagoda by Tomáš Malík (Pexels)**, 1920×973, chosen from four candidates (section 10.1) |
 | Banner height? | Taller: 260 / 340 / 420px on phones / tablets / laptops (section 10.1) |
 | Name or username in the banner? | **Full name** ("Surabhi Gupta"), or the username if there's no name; shortened with "…" if long (section 10.1) |
