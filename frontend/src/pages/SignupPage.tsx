@@ -16,18 +16,19 @@ export default function SignupPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const { register, handleSubmit, setError, formState } = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { username: '', password: '', confirmPassword: '' },
+    defaultValues: { name: '', username: '', password: '', confirmPassword: '' },
     mode: 'onTouched',
   })
 
-  const submit = handleSubmit(async ({ username, password }) => {
+  const submit = handleSubmit(async ({ name, username, password }) => {
     setFormError(null)
     try {
       // "Confirm password" is checked here only; it isn't sent (api-contract-spec.md §6.1).
-      await signup.mutateAsync({ username, password })
+      // An empty name is sent as null: "no name" (api-contract-spec.md §6.1).
+      await signup.mutateAsync({ name: name || null, username, password })
     } catch (error) {
       // 409 USERNAME_TAKEN appears under the username field; anything else above the form.
-      if (!applyFieldErrors(error, setError, ['username', 'password'])) {
+      if (!applyFieldErrors(error, setError, ['name', 'username', 'password'])) {
         setFormError(errorMessage(error))
       }
     }
@@ -37,6 +38,18 @@ export default function SignupPage() {
     <AuthLayout title="Create an account">
       <form noValidate onSubmit={submit} className="grid gap-4">
         {formError && <FormAlert>{formError}</FormAlert>}
+        <Field label="Name (optional)" error={formState.errors.name?.message}>
+          {(a11y) => (
+            <input
+              {...a11y}
+              type="text"
+              autoComplete="name"
+              maxLength={50}
+              className={inputClass}
+              {...register('name')}
+            />
+          )}
+        </Field>
         <Field
           label="Username"
           hint="3–30 letters, numbers, or underscores"

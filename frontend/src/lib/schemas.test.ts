@@ -62,14 +62,23 @@ describe('tripSchema', () => {
 describe('signupSchema / loginSchema', () => {
   it('enforces the username and password rules', () => {
     expect(
-      messages(signupSchema.safeParse({ username: 'a b', password: 'short', confirmPassword: 'short' })),
+      messages(signupSchema.safeParse({ name: '', username: 'a b', password: 'short', confirmPassword: 'short' })),
     ).toEqual({
       username: 'Use 3–30 letters, numbers, or underscores.',
       password: 'Password must be 8–72 characters.',
     })
     expect(
-      messages(signupSchema.safeParse({ username: 'Surabhi_1', password: 'correct-horse', confirmPassword: 'x' })),
+      messages(signupSchema.safeParse({ name: 'Surabhi', username: 'Surabhi_1', password: 'correct-horse', confirmPassword: 'x' })),
     ).toEqual({ confirmPassword: "Passwords don't match." })
+  })
+
+  it('name is optional, at most 50 characters', () => {
+    const base = { username: 'surabhi', password: 'correct-horse', confirmPassword: 'correct-horse' }
+    expect(signupSchema.safeParse({ ...base, name: '' }).success).toBe(true)
+    expect(signupSchema.safeParse({ ...base, name: "Zoë O'Brien-Müller" }).success).toBe(true)
+    expect(messages(signupSchema.safeParse({ ...base, name: 'x'.repeat(51) }))).toEqual({
+      name: 'Name can be at most 50 characters.',
+    })
   })
 
   it('login only requires non-empty fields', () => {

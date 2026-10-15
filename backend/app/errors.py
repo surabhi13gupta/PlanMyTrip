@@ -50,6 +50,7 @@ def unauthorized() -> ApiError:
 # taken from the validation table in api-contract-spec.md §4.
 FIELD_MESSAGES = {
     "username": "Use 3–30 letters, numbers, or underscores.",
+    "name": "Name can be at most 50 characters.",
     "password": "Password must be 8–72 characters.",
     "destination": "Enter a destination.",
     "startDate": "Enter a valid start date.",

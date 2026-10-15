@@ -10,7 +10,8 @@ def test_signup_lowercases_username_and_logs_in(client, db):
     user = signup(client, username="Surabhi")
     assert user["username"] == "surabhi"
     assert user["createdAt"].endswith("Z")
-    assert set(user) == {"id", "username", "createdAt"}
+    assert set(user) == {"id", "username", "name", "createdAt"}
+    assert user["name"] is None  # no name given
     assert client.get("/api/v1/auth/me").json()["user"]["username"] == "surabhi"
     # The password is stored only as an Argon2id hash.
     stored = db.scalar(select(User).where(User.username == "surabhi"))
@@ -118,3 +119,52 @@ def test_me_without_session_is_unauthorized(client):
     response = client.get("/api/v1/auth/me")
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "UNAUTHORIZED"
+
+
+def test_signup_with_name_keeps_it_as_typed(client):
+    response = client.post(
+        "/api/v1/auth/signup",
+        json={"name": "  Surabhi Gupta ", "username": "Surabhi", "password": "correct-horse-42"},
+    )
+    assert response.status_code == 201
+    user = response.json()["user"]
+    assert user["name"] == "Surabhi Gupta"  # trimmed, case kept
+    assert user["username"] == "surabhi"
+    assert client.get("/api/v1/auth/me").json()["user"]["name"] == "Surabhi Gupta"
+
+
+def test_name_is_optional_and_empty_means_no_name(new_client):
+    for i, extra in enumerate(({}, {"name": None}, {"name": "   "})):
+        response = new_client().post(
+            "/api/v1/auth/signup",
+            json={"username": f"user{i}", "password": "correct-horse-42", **extra},
+        )
+        assert response.status_code == 201, extra
+        assert response.json()["user"]["name"] is None
+
+
+def test_name_in_any_language_and_at_most_50_characters(client, new_client):
+    ok = client.post(
+        "/api/v1/auth/signup",
+        json={"name": "Zoë O'Brien-Müller 李", "username": "zoe", "password": "correct-horse-42"},
+    )
+    assert ok.json()["user"]["name"] == "Zoë O'Brien-Müller 李"
+    too_long = new_client().post(
+        "/api/v1/auth/signup",
+        json={"name": "x" * 51, "username": "longname", "password": "correct-horse-42"},
+    )
+    assert too_long.status_code == 400
+    assert too_long.json()["error"]["details"] == [
+        {"field": "name", "message": "Name can be at most 50 characters."}
+    ]
+
+
+def test_login_returns_name(client, new_client):
+    client.post(
+        "/api/v1/auth/signup",
+        json={"name": "Surabhi Gupta", "username": "surabhi", "password": "correct-horse-42"},
+    )
+    response = new_client().post(
+        "/api/v1/auth/login", json={"username": "surabhi", "password": "correct-horse-42"}
+    )
+    assert response.json()["user"]["name"] == "Surabhi Gupta"

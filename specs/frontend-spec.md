@@ -20,7 +20,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - Dates: date-fns
 - PDF: `@react-pdf/renderer`, loaded only when the user exports. The PDF uses Fira Sans too, registered with the PDF library's `Font.register`, and the same dark blue for headings.
 - Notifications: `sonner` (toasts)
-- Testing: Vitest + React Testing Library + MSW (to mock the API); Playwright for end-to-end tests
+- Testing: Vitest + React Testing Library + MSW (to mock the API). End-to-end tests with Playwright are **future scope** (section 14)
 - Build tool: Vite
 - Linting / formatting: oxlint (ships with Vite's React template; much faster than ESLint, with React, hooks and accessibility rules built in). No separate formatter in the MVP; keep the existing code style.
 
@@ -295,7 +295,7 @@ Every page starts with the same banner: a mountain photo across the top, with th
 ## 14. Testing Strategy
 - **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
 - **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day), the Edit Trip warning dialog, and `ProtectedRoute` redirects. API calls are mocked with MSW.
-- **End-to-end:** One Playwright test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px. A second test: refresh keeps the user logged in; closing the page with an unsaved activity, then reopening, asks for login and shows the activity saved.
+- **End-to-end — future scope (parked):** The Playwright tests are written but commented out in `e2e/planmytrip.spec.ts`, and the `npm run e2e` script is removed, because Chromium's system libraries aren't installed on this machine. To bring them back: run `sudo npx playwright install-deps chromium`, uncomment the file, and restore the script. Until then, the flows below are checked by hand in the browser. What they cover: one test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px. A second test: refresh keeps the user logged in; closing the page with an unsaved activity, then reopening, asks for login and shows the activity saved.
 
 ## 15. Project Structure
 ```
@@ -328,7 +328,7 @@ frontend/                 # vercel.json lives at the repository root (see backen
     types/
       index.ts            # User, Trip, Activity, TripType (match API shapes)
   tests/                  # Vitest setup, MSW handlers
-  e2e/                    # Playwright tests
+  e2e/                    # Playwright tests (parked, commented out: future scope)
 ```
 
 ## 16. Deployment
@@ -355,6 +355,7 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 | Should the welcome heading match the logo? | **Yes:** "PlanMyTrip" in the heading uses the logo's `Wordmark`, handwritten "My" included |
 | Ask for a name at signup? | **Yes, optional:** up to 50 characters. Without one (or for accounts created before names), the app uses the username (backend-spec §4.1) |
 | Login form: inside a white box or not? | **Not:** the form sits directly on the light brown page below the banner (sections 4.1–4.2) |
+| Run the Playwright end-to-end tests now? | **No, future scope:** the tests stay in the repo, commented out (section 14) |
 | ESLint + Prettier, or oxlint? | **oxlint**, which came with Vite's template (section 2) |
 | Are activities tied to a calendar date or a day number? | **Day number.** Moving a trip's dates moves its plan with it; shortening a trip removes the last days (after the warning) |
 | Session cookie or Bearer token? | **`httpOnly` session cookie** (section 8). The API contract uses the `session` cookie, with no `Authorization` header |

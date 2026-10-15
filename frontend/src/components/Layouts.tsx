@@ -1,10 +1,11 @@
 import { Suspense, type ReactNode } from 'react'
 import { Outlet, useNavigate } from 'react-router'
 import { useAuth, useLogout } from '../hooks/useAuth'
+import { displayName } from '../lib/greeting'
 import { SiteBanner } from './SiteBanner'
 import { FullPageSpinner } from './States'
 
-/** Logged-in pages: the banner with username and Log out, then the page (frontend-spec.md §5). */
+/** Logged-in pages: the banner with the user's name and Log out, then the page (frontend-spec.md §5). */
 export function AppLayout() {
   const { user } = useAuth()
   const logout = useLogout()
@@ -14,8 +15,8 @@ export function AppLayout() {
     <div className="min-h-dvh">
       <SiteBanner>
         <div className="flex min-w-0 flex-nowrap items-center gap-1 text-[0.9375rem] whitespace-nowrap text-white">
-          <span className="min-w-0 max-w-[8rem] truncate sm:max-w-[16rem]" title={user?.username}>
-            {user?.username}
+          <span className="min-w-0 max-w-[8rem] truncate sm:max-w-[16rem]" title={user ? displayName(user) : undefined}>
+            {user && displayName(user)}
           </span>
           <button
             type="button"

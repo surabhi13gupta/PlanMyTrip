@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { authApi, type Credentials } from '../api/auth'
+import { authApi, type Credentials, type SignupBody } from '../api/auth'
 import { ApiError } from '../api/client'
 import { clearTabLogin, hasTabLogin, markTabLoggedIn } from '../lib/tabSession'
 import { queryKeys } from '../queryClient'
@@ -55,7 +55,7 @@ export function useLogin() {
 export function useSignup() {
   const loggedIn = useLoggedIn()
   return useMutation({
-    mutationFn: (body: Credentials) => authApi.signup(body),
+    mutationFn: (body: SignupBody) => authApi.signup(body),
     onSuccess: loggedIn,
   })
 }

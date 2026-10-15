@@ -10,7 +10,7 @@ const routes = [
   { path: '/trips/:id', element: <ProtectedRoute><p>Trip page</p></ProtectedRoute> },
 ]
 
-const user = { id: 'u1', username: 'surabhi', createdAt: '2026-10-04T10:00:00Z' }
+const user = { id: 'u1', username: 'surabhi', name: null, createdAt: '2026-10-04T10:00:00Z' }
 
 /** The startup session check has already finished, as AppShell guarantees before routes render. */
 async function render(path: string, loggedIn: boolean) {

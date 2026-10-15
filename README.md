@@ -11,7 +11,7 @@ Plan a trip day by day and print a clean itinerary. Specs live in [`specs/`](./s
 
 ## What it does
 
-- Sign up / log in with a username and password. Closing the page logs you out; refreshing doesn't.
+- Sign up with a username, password, and optional name (you're greeted by first name). Closing the page logs you out; refreshing doesn't.
 - Add a trip (From, To, Destination, Trip Type; up to 14 days, not in the past).
 - Plan each day: add, edit, and delete activities (title, optional time and notes).
 - Edit a trip's dates; shortening it warns before deleting activities on removed days.
@@ -50,7 +50,8 @@ Open http://localhost:5173 and create an account. The Vite dev server forwards `
 | `cd frontend && npm test` | Date/sorting helpers, form rules, components (API mocked with MSW) |
 | `cd frontend && npm run build` | Type check + production build |
 | `cd frontend && npm run lint` | Frontend lint (oxlint) |
-| `cd frontend && npm run e2e` | End-to-end in a real browser at desktop and 375px widths (needs the Docker database; first run: `npx playwright install chromium`) |
+
+End-to-end browser tests (Playwright) are future scope: they're in `frontend/e2e/`, commented out.
 
 ## Useful commands
 
@@ -63,5 +64,5 @@ Open http://localhost:5173 and create an account. The Vite dev server forwards `
 
 ## Credits
 
-- Banner photo: Seiser Alm, Dolomites, by [Lukas Leitner on Unsplash](https://unsplash.com/photos/epDtXfC8ipI) (Unsplash License).
+- Banner photo: Mount Fuji with the Chureito Pagoda, by [Tomáš Malík on Pexels](https://www.pexels.com/photo/3408354/) (Pexels License).
 - Fonts: [Fira Sans](https://fontsource.org/fonts/fira-sans) and [Dancing Script](https://fontsource.org/fonts/dancing-script) (SIL Open Font License), self-hosted via Fontsource.

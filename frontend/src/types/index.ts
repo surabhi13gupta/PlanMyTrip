@@ -12,6 +12,8 @@ export const TRIP_TYPES: { value: TripType; label: string }[] = [
 export interface User {
   id: string
   username: string
+  /** As typed at signup, or null if they didn't give one. */
+  name: string | null
   createdAt: string
 }
 

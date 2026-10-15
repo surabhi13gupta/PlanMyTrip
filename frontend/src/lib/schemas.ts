@@ -4,6 +4,7 @@ import { getTripDuration, isValidISODate, MAX_TRIP_DAYS, todayISO } from './date
 
 export const signupSchema = z
   .object({
+    name: z.string().trim().max(50, 'Name can be at most 50 characters.'),
     username: z
       .string()
       .trim()

@@ -145,7 +145,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
   <div class="meta-row">
     <span class="pill">Specs: complete</span>
     <span class="pill">App: built on <code>main</code></span>
-    <span class="pill">90 automated tests passing</span>
+    <span class="pill">99 automated tests passing</span>
     <span class="pill">Next: connect Vercel</span>
   </div>
 </header>
@@ -319,10 +319,14 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
       <h3>The full app</h3>
       <p>Backend (tables, login, trips, activities), frontend (every page from the mockups, PDF, close-to-logout, save-on-close), and 87 automated tests. Linting settled on oxlint.</p>
       <span class="commits">04ec7c1 · f9c1e17 · ae4e68d</span></div></li>
-    <li class="now"><span class="dot">11</span><div class="tl-body">
+    <li><span class="dot">11</span><div class="tl-body">
       <h3>Mountain banner and logo</h3>
       <p>Spec first, reviewed with a live preview: a mountain photo across the top of every page, a map-pin logo with a handwritten “My”, login without the white card, and username plus Log out kept on one line. The small, unclear-rights photo was replaced with a free 1920px Unsplash photo.</p>
-      <span class="commits">e82517e (spec) · then the implementation</span></div></li>
+      <span class="commits">e82517e · 589bf93</span></div></li>
+    <li class="now"><span class="dot">12</span><div class="tl-body">
+      <h3>Fuji banner, names, and a logo-style greeting</h3>
+      <p>Picked from three photos you uploaded: Mount Fuji with the Chureito Pagoda, in a taller banner. Signup gained an optional name; My Trips greets “Surabhi, welcome to Plan<i>My</i>Trip” (first name, or username without a name), and the banner shows the full name.</p>
+      <span class="commits">d93094f · 048b48f (spec) · then the implementation</span></div></li>
   </ol>
 </section>
 
@@ -372,7 +376,8 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
         <tr><td>Migrations</td><td>Run during each Vercel build</td><td>Automatic, and new code never goes live before its tables exist</td></tr>
         <tr><td>Failed-login limits</td><td>Future work</td><td>Your choice, to keep the MVP small</td></tr>
         <tr><td>Python tooling</td><td><code>uv</code></td><td>Manages the environment, locks exact versions, and is fast</td></tr>
-        <tr><td>Banner photo</td><td>Seiser Alm, Dolomites, by Lukas Leitner (Unsplash)</td><td>Closest to your original photo, sharp at 1920px, and free to use; the first photo was 700px and came through a Bing search</td></tr>
+        <tr><td>Banner photo</td><td>Mount Fuji with the Chureito Pagoda, by Tomáš Malík (Pexels); taller banner (260 / 340 / 420px)</td><td>Your pick from three photos you uploaded; free to use. Replaced the Dolomites photo, which had replaced a small 700px image</td></tr>
+        <tr><td>Name</td><td>Optional at signup; greet by first name, else username; banner shows full name</td><td>A friendlier greeting without forcing anyone to share a name; existing accounts simply have no name</td></tr>
         <tr><td>Logo</td><td>Map pin with two peaks; “Plan<i>My</i>Trip” with a handwritten “My”</td><td>A place to go plus the mountains of the banner; the cursive “My” was your request</td></tr>
         <tr><td>Frontend linting</td><td>oxlint (instead of ESLint + Prettier)</td><td>Came with Vite's template, much faster, includes React and accessibility rules</td></tr>
       </tbody>
@@ -422,7 +427,7 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
         <li><strong>Vitest</strong>: runs frontend tests</li>
         <li><strong>React Testing Library</strong>: tests pages the way a user uses them</li>
         <li><strong>MSW</strong>: pretends to be the backend in frontend tests</li>
-        <li><strong>Playwright</strong>: drives a real browser through the whole app</li>
+        <li><strong>Playwright</strong>: would drive a real browser through the whole app; parked as future scope</li>
       </ul>
     </div>
     <div class="card">
@@ -466,16 +471,16 @@ footer { grid-column: 1 / -1; color: var(--muted); font-size: 0.9rem; border-top
   <pre class="tree" aria-label="Frontend files"><code>frontend/src/
 ├── main.tsx, router.tsx, queryClient.ts  <span class="c"># start-up, routes, cache + "session expired" handling</span>
 ├── styles.css           <span class="c"># Tailwind + color tokens + Fira Sans + Dancing Script</span>
-├── assets/              <span class="c"># header-mountains.jpg, the banner photo (1920×819, 236 KB)</span>
+├── assets/              <span class="c"># header-mountains.jpg, the banner photo (Mount Fuji, 1920×973, 234 KB)</span>
 ├── types/index.ts       <span class="c"># Trip, Activity, User shapes from the contract</span>
 ├── api/                 <span class="c"># client.ts (fetch + ApiError), auth.ts, trips.ts</span>
 ├── hooks/               <span class="c"># useAuth, useTrips (+ mutations), useUnsavedFormRegistry</span>
 ├── lib/                 <span class="c"># dates, activities (sorting), schemas (Zod), tabSession, unsavedForms, errors</span>
-├── components/          <span class="c"># SiteBanner, Logo, TripForm, DayCard, DayNav, ConfirmDialog, PrintButton, layouts, guards …</span>
+├── components/          <span class="c"># SiteBanner, Logo, Wordmark, TripForm, DayCard, DayNav, ConfirmDialog, PrintButton, layouts, guards …</span>
 ├── pages/               <span class="c"># Login, Signup, Trips, NewTrip, Trip, EditTrip, NotFound</span>
 ├── pdf/                 <span class="c"># ItineraryPdf.tsx (layout), exportItinerary.ts (download)</span>
 └── test/                <span class="c"># test setup, MSW fake server, render helpers</span>
-frontend/e2e/planmytrip.spec.ts  <span class="c"># browser tests, desktop + 375px</span></code></pre>
+frontend/e2e/planmytrip.spec.ts  <span class="c"># browser tests, commented out (future scope)</span></code></pre>
 </section>
 
 <!-- 8 -->
@@ -536,8 +541,8 @@ frontend/e2e/planmytrip.spec.ts  <span class="c"># browser tests, desktop + 375p
     </div>
     <div class="card">
       <h3>Mountain banner and logo</h3>
-      <p>Every page starts with the same banner: the photo fills the width (200px tall on phones, 300px on laptops) with a dark-blue shade at the top so white text stays readable. The logo sits top left. Logged in, the username and Log out sit top right on one line; a long name is shortened with “…”. The photo is decorative, so screen readers skip it.</p>
-      <p class="mono">components/SiteBanner.tsx · Logo.tsx · Layouts.tsx</p>
+      <p>Every page starts with the same banner: the Mount Fuji photo fills the width (260px tall on phones, 420px on laptops) with a dark-blue shade at the top so white text stays readable. The logo sits top left. Logged in, your full name (or username) and Log out sit top right on one line; a long name is shortened with “…”. My Trips greets you by first name, with “Plan<i>My</i>Trip” drawn by the same <code>Wordmark</code> as the logo.</p>
+      <p class="mono">components/SiteBanner.tsx · Logo.tsx · Wordmark.tsx · lib/greeting.ts</p>
     </div>
   </div>
 </section>
@@ -683,11 +688,11 @@ else if (getTripDuration(v.startDate, v.endDate) &gt; 14)     → "A trip can be
     <table>
       <thead><tr><th>Suite</th><th>Covers</th><th>Result</th></tr></thead>
       <tbody>
-        <tr><td>Backend (pytest)</td><td>Signup/login/logout, cookie flags, sessions and idle timeout, trip rules (14 days, past dates, shortening), activities and sorting, all 7 endpoints for another user's data, JSON-only writes</td><td class="status-ok">45 passed</td></tr>
-        <tr><td>Frontend (Vitest)</td><td>Date math (incl. year and daylight-saving boundaries), sorting, PDF file names, all form rules, TripForm, DayCard, save-on-close registry, route guards, start-up session check, Edit Trip warning, banner and logo (one-line username, card-less login)</td><td class="status-ok">45 passed</td></tr>
+        <tr><td>Backend (pytest)</td><td>Signup (incl. optional name)/login/logout, cookie flags, sessions and idle timeout, trip rules (14 days, past dates, shortening), activities and sorting, all 7 endpoints for another user's data, JSON-only writes</td><td class="status-ok">49 passed</td></tr>
+        <tr><td>Frontend (Vitest)</td><td>Date math (incl. year and daylight-saving boundaries), sorting, PDF file names, all form rules, TripForm, DayCard, save-on-close registry, route guards, start-up session check, Edit Trip warning, banner and logo (one-line name, card-less login), greeting rules (first name, username fallback), optional name</td><td class="status-ok">50 passed</td></tr>
         <tr><td>Lint and types</td><td>ruff, oxlint, TypeScript strict, production build</td><td class="status-ok">Passed</td></tr>
         <tr><td>Smoke test</td><td>Real servers through the frontend's address: signup → trip → activity → logout</td><td class="status-ok">Passed</td></tr>
-        <tr><td>End-to-end (Playwright)</td><td>Full flow to PDF download, and close-to-logout with save-on-close, at desktop and 375px</td><td class="status-next">Written; needs browser system libraries (see What comes next)</td></tr>
+        <tr><td>End-to-end (Playwright)</td><td>Full flow to PDF download, and close-to-logout with save-on-close, at desktop and 375px</td><td class="status-next">Future scope: written, commented out</td></tr>
       </tbody>
     </table>
   </div>
@@ -738,7 +743,6 @@ cd frontend &amp;&amp; npm run dev</code></pre>
         <li><code>cd backend &amp;&amp; uv run ruff check .</code></li>
         <li><code>cd frontend &amp;&amp; npm test</code></li>
         <li><code>cd frontend &amp;&amp; npm run build</code> and <code>npm run lint</code></li>
-        <li><code>cd frontend &amp;&amp; npm run e2e</code></li>
       </ul>
     </div>
   </div>
@@ -753,7 +757,7 @@ cd frontend &amp;&amp; npm run dev</code></pre>
     <table>
       <thead><tr><th>Step</th><th>What</th><th>Who</th></tr></thead>
       <tbody>
-        <tr><td>Browser tests</td><td>Install Chromium's system libraries once: <code>cd frontend &amp;&amp; sudo npx playwright install-deps chromium</code>, then <code>npm run e2e</code></td><td>You (needs your password)</td></tr>
+        <tr><td>Browser tests</td><td>Future scope. To bring them back: <code>cd frontend &amp;&amp; sudo npx playwright install-deps chromium</code>, uncomment <code>e2e/planmytrip.spec.ts</code>, restore the <code>e2e</code> script</td><td>Later</td></tr>
         <tr><td>Connect Vercel</td><td>Create a Vercel account, import the repo, add Neon with preview branching on. Check that migrations run in the build, previews get their own database, and the page's files load</td><td>You, guided</td></tr>
         <tr><td>Go live</td><td>Pushes to <code>main</code> deploy to production; check the success metrics (signup to PDF in under 5 minutes, works at 375px)</td><td>Together</td></tr>
         <tr><td>Future work</td><td>From the goal spec: email login, past trips, multiple destinations, sharing, limiting failed logins, dark mode</td><td>Later</td></tr>

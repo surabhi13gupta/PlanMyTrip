@@ -11,6 +11,17 @@ USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,30}$")
 class SignupIn(RequestModel):
     username: str
     password: str
+    name: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def check_name(cls, value: str | None) -> str | None:
+        # Optional: left out, null, or empty (after trimming) are all stored as "no name".
+        if not value:
+            return None
+        if len(value) > 50:
+            raise ValueError("Name can be at most 50 characters.")
+        return value
 
     @field_validator("username")
     @classmethod
@@ -49,6 +60,7 @@ class LoginIn(RequestModel):
 class UserOut(ResponseModel):
     id: uuid.UUID
     username: str
+    name: str | None
     created_at: UtcTimestamp
 
 

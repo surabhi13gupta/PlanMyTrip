@@ -2,7 +2,12 @@ import { screen } from '@testing-library/react'
 import { renderRoutes } from '../test/render'
 import { AppLayout, AuthLayout } from './Layouts'
 
-const user = { id: 'u1', username: 'surabhi_travels_2026', createdAt: '2026-10-04T10:00:00Z' }
+const user = {
+  id: 'u1',
+  username: 'alexandra',
+  name: 'Alexandra Montgomery-Whitfield',
+  createdAt: '2026-10-04T10:00:00Z',
+}
 
 function render(path: string, loggedIn: boolean) {
   return renderRoutes(
@@ -35,13 +40,13 @@ describe('SiteBanner', () => {
     expect(heading.closest('.border-line')).toBeNull()
   })
 
-  it('logged in: logo links to My Trips; username and Log out stay on one line', () => {
+  it('logged in: logo links to My Trips; the full name and Log out stay on one line', () => {
     render('/trips', true)
     expect(screen.getByRole('link', { name: 'PlanMyTrip, home' })).toHaveAttribute('href', '/trips')
-    const name = screen.getByText('surabhi_travels_2026')
-    // Long usernames are cut short with "…" (full name in the tooltip) instead of wrapping.
+    const name = screen.getByText('Alexandra Montgomery-Whitfield') // the name, not the username
+    // Long names are cut short with "…" (full name in the tooltip) instead of wrapping.
     expect(name).toHaveClass('truncate')
-    expect(name).toHaveAttribute('title', 'surabhi_travels_2026')
+    expect(name).toHaveAttribute('title', 'Alexandra Montgomery-Whitfield')
     const row = name.parentElement!
     expect(row).toHaveClass('flex-nowrap', 'whitespace-nowrap')
     expect(screen.getByRole('button', { name: 'Log out' })).toHaveClass('shrink-0', 'whitespace-nowrap')

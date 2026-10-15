@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { Wordmark } from './Wordmark'
 
 type LogoVariant = 'onImage' | 'onLight'
 
@@ -22,7 +23,7 @@ export function LogoMark({ variant, className = '' }: { variant: LogoVariant; cl
 }
 
 /**
- * The PlanMyTrip logo: mark + "Plan My Trip" wordmark with a handwritten "My"
+ * The PlanMyTrip logo: mark + the shared Wordmark
  * (frontend-spec.md §10.1). Never wraps or shrinks.
  */
 export function Logo({ variant, to }: { variant: LogoVariant; to: string }) {
@@ -38,16 +39,12 @@ export function Logo({ variant, to }: { variant: LogoVariant; to: string }) {
       }
     >
       <LogoMark variant={variant} className="h-[42px] w-auto shrink-0 sm:h-12" />
-      <span
+      <Wordmark
         className={
-          'inline-flex items-baseline text-[1.3rem] leading-none tracking-[-0.01em] sm:text-[1.45rem] ' +
+          'text-[1.3rem] leading-none tracking-[-0.01em] sm:text-[1.45rem] ' +
           (onImage ? 'text-white [text-shadow:0_1px_2px_rgb(21_42_69/0.35)]' : 'text-primary')
         }
-      >
-        <span className="font-medium">Plan</span>
-        <span className="ml-[0.06em] mr-[0.04em] font-script text-[1.32em] font-bold tracking-normal">My</span>
-        <span className="font-semibold">Trip</span>
-      </span>
+      />
     </Link>
   )
 }

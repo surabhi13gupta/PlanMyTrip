@@ -109,6 +109,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Sharing a trip, or planning it together with other travelers
 - Activity suggestions based on Trip Type or destination
 - Maps, weather, and booking links for activities
+- Automated end-to-end browser tests (Playwright): written, but parked until the browser's system libraries are set up
 
 ## 9. Success Metrics
 <!-- For this MVP, success means the definition of done is met. -->

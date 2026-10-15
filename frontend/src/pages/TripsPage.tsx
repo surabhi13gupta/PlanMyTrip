@@ -2,18 +2,26 @@ import { Link } from 'react-router'
 import { EmptyState, ErrorState, Skeleton } from '../components/States'
 import { TripCard } from '../components/TripCard'
 import { buttonClass } from '../components/ui'
+import { Wordmark } from '../components/Wordmark'
+import { useAuth } from '../hooks/useAuth'
 import { useTrips } from '../hooks/useTrips'
 import { sortTripsForHome } from '../lib/activities'
 import { errorMessage } from '../lib/errors'
+import { greetingName } from '../lib/greeting'
 
 /** My Trips, the home screen (US4; mockup "First screen"). */
 export default function TripsPage() {
   const trips = useTrips()
+  const { user } = useAuth()
 
   return (
     <div className="grid gap-8">
       <div className="grid justify-items-start gap-4">
-        <h1 className="text-[1.75rem] font-semibold text-balance text-primary">Welcome to PlanMyTrip</h1>
+        {/* "Surabhi, welcome to PlanMyTrip": first name (or username), brand drawn like the logo. */}
+        <h1 className="text-[1.75rem] font-semibold text-balance break-words text-primary">
+          {user ? `${greetingName(user)}, welcome to ` : 'Welcome to '}
+          <Wordmark />
+        </h1>
         <Link to="/trips/new" className={buttonClass.primary}>
           + Add new trip
         </Link>

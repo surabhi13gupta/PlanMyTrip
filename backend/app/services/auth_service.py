@@ -16,11 +16,11 @@ def _username_taken() -> ApiError:
     )
 
 
-def signup(db: Session, username: str, password: str) -> User:
+def signup(db: Session, username: str, password: str, name: str | None = None) -> User:
     username = username.lower()
     if db.scalar(select(User.id).where(User.username == username)) is not None:
         raise _username_taken()
-    user = User(username=username, password_hash=hash_password(password))
+    user = User(username=username, password_hash=hash_password(password), name=name)
     db.add(user)
     try:
         db.commit()

@@ -10,3 +10,5 @@ class User(UUIDPrimaryKey, Timestamps, Base):
     # Always lowercase, so usernames are case-insensitive.
     username: Mapped[str] = mapped_column(String(30), unique=True)
     password_hash: Mapped[str] = mapped_column(Text)
+    # Optional, as typed (trimmed); None when the user didn't give one. Not unique.
+    name: Mapped[str | None] = mapped_column(String(50), nullable=True)

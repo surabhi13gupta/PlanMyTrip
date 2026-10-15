@@ -24,7 +24,7 @@ def _set_session_cookie(response: Response, token: str) -> None:
 
 @router.post("/signup", status_code=status.HTTP_201_CREATED, response_model=UserEnvelope)
 def signup(body: SignupIn, db: DB, response: Response):
-    user = auth_service.signup(db, body.username, body.password)
+    user = auth_service.signup(db, body.username, body.password, body.name)
     _set_session_cookie(response, session_service.create_session(db, user))
     return {"user": UserOut.model_validate(user)}
 
