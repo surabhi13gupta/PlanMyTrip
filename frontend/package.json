@@ -9,8 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc -b",
-    "e2e": "playwright test"
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "@fontsource/dancing-script": "^5.3.0",
