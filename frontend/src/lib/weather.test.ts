@@ -1,4 +1,4 @@
-import { forecastRange, isBeyondForecast, pickPlace, placeQuery, temperatureUnit, weatherLabel, type Place } from './weather'
+import { forecastRange, isBeyondForecast, pickPlace, placeQuery, weatherLabel, type Place } from './weather'
 
 const paris = (overrides: Partial<Place>): Place => ({ name: 'Paris', latitude: 0, longitude: 0, ...overrides })
 
@@ -44,7 +44,7 @@ describe('forecastRange', () => {
   })
 })
 
-describe('weatherLabel and temperatureUnit', () => {
+describe('weatherLabel', () => {
   it('maps WMO codes to an icon and words', () => {
     expect(weatherLabel(0)).toEqual({ icon: '☀️', label: 'Clear' })
     expect(weatherLabel(63).label).toBe('Rain')
@@ -53,9 +53,4 @@ describe('weatherLabel and temperatureUnit', () => {
     expect(weatherLabel(95).label).toBe('Thunderstorm')
   })
 
-  it('uses °F only for US English', () => {
-    expect(temperatureUnit('en-US')).toBe('fahrenheit')
-    expect(temperatureUnit('en-GB')).toBe('celsius')
-    expect(temperatureUnit('fr-FR')).toBe('celsius')
-  })
 })

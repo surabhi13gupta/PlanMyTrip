@@ -7,8 +7,6 @@ import { parseDate, todayISO } from './dates'
 /** Open-Meteo forecasts today plus the next 15 days. */
 export const FORECAST_DAYS = 16
 
-export type TemperatureUnit = 'celsius' | 'fahrenheit'
-
 export interface Place {
   name: string
   latitude: number
@@ -25,11 +23,6 @@ export interface DayForecast {
   low: number
   /** Chance of rain in %, or null if Open-Meteo doesn't say. */
   rainChance: number | null
-}
-
-/** °F for US English browsers, °C everywhere else. */
-export function temperatureUnit(language: string = navigator.language): TemperatureUnit {
-  return language.toLowerCase() === 'en-us' ? 'fahrenheit' : 'celsius'
 }
 
 /** The part searched for: "Paris" from "Paris, France". */
@@ -98,8 +91,8 @@ export async function findPlace(destination: string): Promise<Place | null> {
 export async function fetchForecast(
   place: Place,
   range: { start: string; end: string },
-  unit: TemperatureUnit,
 ): Promise<DayForecast[]> {
+  // Temperatures in °C, Open-Meteo's default (§4.5.3).
   const params = new URLSearchParams({
     latitude: String(place.latitude),
     longitude: String(place.longitude),
@@ -108,7 +101,6 @@ export async function fetchForecast(
     start_date: range.start,
     end_date: range.end,
   })
-  if (unit === 'fahrenheit') params.set('temperature_unit', 'fahrenheit')
   const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`)
   if (!response.ok) throw new Error(`Forecast failed: ${response.status}`)
   const { daily } = (await response.json()) as {

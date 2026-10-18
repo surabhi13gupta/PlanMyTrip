@@ -1,4 +1,4 @@
-import { isBeyondForecast, temperatureUnit, weatherLabel, type DayForecast } from '../lib/weather'
+import { isBeyondForecast, weatherLabel, type DayForecast } from '../lib/weather'
 
 /**
  * A day's forecast in its heading row: "☀️ High 24°C · Low 15°C 💧 40%", or "Forecast closer to the date"
@@ -11,10 +11,9 @@ export function DayWeather({ date, forecast }: { date: string; forecast?: DayFor
     ) : null
   }
   const { icon, label } = weatherLabel(forecast.code)
-  // Same rule the forecast was fetched with, so the unit always matches the numbers.
-  const unit = temperatureUnit() === 'fahrenheit' ? '°F' : '°C'
-  const high = `${Math.round(forecast.high)}${unit}`
-  const low = `${Math.round(forecast.low)}${unit}`
+  // Always °C (§4.5.3).
+  const high = `${Math.round(forecast.high)}°C`
+  const low = `${Math.round(forecast.low)}°C`
   const rain = forecast.rainChance !== null && forecast.rainChance >= 30 ? forecast.rainChance : null
   const spoken =
     `Forecast: ${label.toLowerCase()}, high ${high}, low ${low}` +

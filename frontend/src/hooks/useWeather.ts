@@ -4,7 +4,6 @@ import {
   fetchForecast,
   findPlace,
   forecastRange,
-  temperatureUnit,
   type DayForecast,
 } from '../lib/weather'
 
@@ -14,7 +13,6 @@ import {
  */
 export function useTripWeather(destination: string, startDate: string, endDate: string) {
   const range = forecastRange(startDate, endDate)
-  const unit = temperatureUnit()
 
   const place = useQuery({
     queryKey: ['geocode', destination],
@@ -24,8 +22,8 @@ export function useTripWeather(destination: string, startDate: string, endDate: 
     retry: false,
   })
   const forecast = useQuery({
-    queryKey: ['weather', destination, range?.start, range?.end, unit],
-    queryFn: () => fetchForecast(place.data!, range!, unit),
+    queryKey: ['weather', destination, range?.start, range?.end],
+    queryFn: () => fetchForecast(place.data!, range!),
     enabled: range !== null && !!place.data,
     staleTime: 60 * 60 * 1000,
     retry: false,
