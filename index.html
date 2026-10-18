@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="How PlanMyTrip is built end to end: system map, request journeys, components, data model, API, security, testing and interview Q&amp;A.">
+<meta name="description" content="How PlanMyTrip is built end to end: abstract, system map, request journeys, components, data model, API, security, testing, interview Q&amp;A and summary.">
 <title>PlanMyTrip Under the Hood</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -150,6 +150,14 @@ details[open] summary::before { content: "−"; }
 .tool { font: inherit; font-size: 0.85rem; min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--primary); cursor: pointer; font-weight: 500; }
 .tool:hover { border-color: var(--primary); }
 
+/* Abstract */
+.abstract { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px 26px; display: grid; gap: 14px; }
+.abstract > p { max-width: 75ch; }
+.abs-grid { margin: 6px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.abs-grid div { border-top: 2px solid var(--primary); padding-top: 8px; display: grid; gap: 2px; }
+.abs-grid dt { font-size: 0.76rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.abs-grid dd { margin: 0; font-size: 0.92rem; color: var(--ink); }
+
 footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 18px; }
 
 @media (max-width: 900px) {
@@ -197,6 +205,24 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
       <div class="fact"><b>$0</b><span>running cost: Vercel, Neon and SerpApi free plans</span></div>
     </div>
   </header>
+
+  <!-- ============ ABSTRACT ============ -->
+  <section id="abstract" aria-labelledby="abs-h">
+    <div class="sec-head">
+      <span class="eyebrow">Project abstract</span>
+      <h2 id="abs-h">Abstract</h2>
+    </div>
+    <div class="abstract">
+      <p>Travelers often keep their day-by-day plans scattered across notes apps, spreadsheets and chat threads, which makes an itinerary hard to organize, share or use on the road. <b>PlanMyTrip</b> is a responsive web application that brings this planning into one place. A traveler creates a trip of up to 14 days, fills each day with activities, discovers things to do through an in-app ideas panel backed by Google Maps results, sees the weather forecast on each day, shares a read-only link with companions, and downloads the whole itinerary as a PDF.</p>
+      <p>The system is a <b>React 19 + TypeScript</b> single-page application and a layered <b>FastAPI</b> REST API backed by <b>PostgreSQL on Neon</b>, deployed together on <b>Vercel</b> as static assets and serverless functions. Security rests on server-side sessions in httpOnly cookies, Argon2id password hashing, CSRF defences and per-user ownership checks. Development followed a <b>spec-first</b> process: goal, frontend, backend and API-contract specifications were written before code, and every feature was reviewed on a preview deployment with its own database branch before being merged through a pull request. The result is a production application that runs entirely on free tiers, at no running cost.</p>
+      <dl class="abs-grid">
+        <div><dt>Problem</dt><dd>Trip plans are scattered across tools and hard to keep organized, share or carry while traveling.</dd></div>
+        <div><dt>Solution</dt><dd>One app to plan day by day, find ideas, check the weather, share read-only, and export a PDF.</dd></div>
+        <div><dt>Approach</dt><dd>Spec-first; React + FastAPI + PostgreSQL; preview deployments with database branches; reviewed pull requests.</dd></div>
+        <div><dt>Outcome</dt><dd>Live in production with 13 features, 17 API endpoints and 88 passing frontend tests, at $0 a month.</dd></div>
+      </dl>
+    </div>
+  </section>
 
   <!-- ============ SYSTEM MAP ============ -->
   <section id="map" aria-labelledby="map-h">
@@ -571,6 +597,68 @@ footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--li
       <details><summary>What would you improve next?</summary><div class="ans">
         <ul><li>CI with GitHub Actions to run both test suites on every pull request.</li><li>Rate limiting failed logins, with counts stored in Postgres.</li><li>Playwright end-to-end tests (already written, parked).</li><li>Error monitoring and structured logs.</li><li>Features: packing list, calendar export, a "today" view, installable PWA.</li></ul>
       </div></details>
+    </div>
+  </section>
+
+  <!-- ============ SUMMARY ============ -->
+  <section id="summary" aria-labelledby="sum-h">
+    <div class="sec-head">
+      <span class="eyebrow">8 · Summary</span>
+      <h2 id="sum-h">Project summary</h2>
+      <p class="lede">What was delivered, the decisions that shaped it, and what came out of building it.</p>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th scope="col">ID</th><th scope="col">Feature</th><th scope="col">What the traveler gets</th></tr></thead>
+        <tbody>
+          <tr><td class="m">F1</td><td>Accounts</td><td>Sign up, log in and log out with a username and password</td></tr>
+          <tr><td class="m">F2</td><td>Create trip</td><td>Destination, dates (up to 14 days) and Trip Type: solo, couple, family or friends</td></tr>
+          <tr><td class="m">F3</td><td>My Trips</td><td>A personal list of upcoming and past trips</td></tr>
+          <tr><td class="m">F4</td><td>Day-by-day plan</td><td>Add, edit and delete activities with an optional time and notes on each day</td></tr>
+          <tr><td class="m">F5</td><td>Print itinerary</td><td>Download the whole plan as a PDF</td></tr>
+          <tr><td class="m">F6</td><td>Edit / delete trip</td><td>Change dates safely, with a warning before activities would be removed</td></tr>
+          <tr><td class="m">F7</td><td>Responsive UI</td><td>Works on phones, tablets and laptops</td></tr>
+          <tr><td class="m">F8</td><td>Ideas panel</td><td>Google Maps places by category, each addable to any day</td></tr>
+          <tr><td class="m">F9</td><td>Map links</td><td>Open any activity in Google Maps, on screen and in the PDF</td></tr>
+          <tr><td class="m">F10</td><td>About page</td><td>A short, visual page explaining the app</td></tr>
+          <tr><td class="m">F11</td><td>Back links</td><td>“← My Trips” and “← Back to trip” on inner pages</td></tr>
+          <tr><td class="m">F12</td><td>Weather</td><td>High, low and rain chance in °C on each day, up to 16 days ahead</td></tr>
+          <tr><td class="m">F13</td><td>Share link</td><td>A revocable read-only link anyone can open without an account</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="cols">
+      <div class="note">
+        <h3>Key decisions</h3>
+        <ul>
+          <li><b>One Vercel project</b> for frontend and backend: one domain, no CORS, one deploy.</li>
+          <li><b>Sessions over JWTs:</b> httpOnly cookies that scripts can't read and that can be revoked at once.</li>
+          <li><b>Services hold the rules</b>, so they're testable without HTTP and ownership is checked in one place.</li>
+          <li><b>Additive migrations in the build</b>, with a database branch for every preview.</li>
+          <li><b>Free services only</b>, with caching and limits to stay inside free quotas.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>Challenges and how they were solved</h3>
+        <ul>
+          <li><b>Serverless + Postgres:</b> no connection pool in the function, Neon's pooler instead, prepared statements off.</li>
+          <li><b>A 250-searches-a-month quota:</b> shared 30-day cache, per-user daily limit, no retries, stale fallback.</li>
+          <li><b>Logging out when a tab closes</b> without breaking refresh: a per-tab <code>sessionStorage</code> marker checked at startup.</li>
+          <li><b>A cramped panel on small screens:</b> after review, a docked panel on large screens, a drawer on tablets and a sheet on phones.</li>
+          <li><b>Cost:</b> a fully designed AI trip assistant was shelved to keep the app free.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>Outcome and next steps</h3>
+        <ul>
+          <li>Live at <a href="https://planmytrip-sur.vercel.app" target="_blank" rel="noopener noreferrer">planmytrip-sur.vercel.app</a>, shipped through two reviewed pull requests after the MVP.</li>
+          <li>13 features, 9 pages, 17 endpoints, 5 tables, 88 passing frontend tests, $0 a month.</li>
+          <li>Next: CI with GitHub Actions for both test suites, login rate limiting, end-to-end tests with Playwright, error monitoring.</li>
+          <li>Feature ideas: packing checklist, calendar export, a “today” view, an installable app (PWA).</li>
+        </ul>
+      </div>
     </div>
   </section>
 
