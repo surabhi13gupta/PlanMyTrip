@@ -1,6 +1,6 @@
 # Goal Spec — PlanMyTrip
 
-> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-16
+> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-04
 
 ## 1. Problem Statement
 <!-- What problem are we solving, and for whom? -->
@@ -8,7 +8,7 @@ Travelers planning a trip typically scatter their day-by-day plans across notes 
 
 ## 2. Vision
 <!-- One or two sentences describing the end state. -->
-A single place where any traveler can plan a trip day by day and walk away with a clean, printable itinerary. In phase 2, a trip assistant helps fill the days with real places and suggests where to stay.
+A single place where any traveler can plan a trip day by day and walk away with a clean, printable itinerary.
 
 ## 3. Target Users / Personas
 Any traveler planning a trip, regardless of who they're traveling with: solo, as a couple, with family, or with a group of friends.
@@ -21,14 +21,13 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - G2: A traveler can organize activities by day, from the first day of the trip to the last.
 - G3: A traveler can produce a clean, printable PDF of the itinerary.
 - G4: The app is easy to use on both desktop and mobile browsers.
-- G5 (phase 2): A traveler can ask an AI assistant for day plans and hotels at their destination, get real places, and add suggestions to the plan with one click.
 
 ## 5. Non-Goals (Out of Scope)
 - Pre-filling the day-by-day plan from dropdown choices
+- Suggesting activities based on Trip Type or destination
 - Multiple destinations in one trip
 - Sharing a trip or editing it together with other users
-- Bookings, payments, maps, or weather (the assistant links to Google Maps, but doesn't book or show live hotel prices)
-- The assistant changing the plan by itself (it only suggests; the traveler adds)
+- Bookings, payments, maps, or weather
 - A native mobile app or offline mode
 - Email verification or password reset
 
@@ -42,8 +41,6 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | F5 | Print itinerary | A "Print" button downloads the trip's itinerary as a PDF | P0 |
 | F6 | Edit / delete trip | Change a trip's dates, destination, or Trip Type; delete the trip from its page | P1 |
 | F7 | Responsive UI | Every screen is usable on desktop and on mobile browsers | P0 |
-| F8 | Trip assistant | One AI chat per trip: free-form requests, day-tagged activity suggestions from real places, added with one click ([ai-spec.md](./ai-spec.md)) | P1 (phase 2) |
-| F9 | Hotel suggestions | The assistant suggests well-rated hotels at the destination, with a link to check prices | P2 (phase 2) |
 
 ## 7. User Stories
 <!-- Format: As a <persona>, I want <action> so that <benefit>. -->
@@ -104,20 +101,14 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
     - [ ] If the start date is changed, it cannot be earlier than today; a trip that has already started can still be edited if its start date is left alone
     - [ ] If shortening the dates would remove days that have activities, the user sees how many activities will be deleted and must confirm. If they confirm, those activities are deleted. If they cancel, nothing changes.
 
-- **US8 (phase 2):** As a traveler, I want an assistant that plans days with me and suggests hotels so that I can fill my trip with real places quickly.
-  - Acceptance criteria: the trip assistant stories AI-US1 to AI-US5 in [ai-spec.md](./ai-spec.md#3-user-stories). In short:
-    - [ ] One "Plan with assistant" button on the Trip Page opens one conversation for the whole trip
-    - [ ] Suggestions are real places found by search, each with a day; they're added only when the traveler clicks Add
-    - [ ] Hotel suggestions show a rating and a link to check prices; no live prices
-    - [ ] Each user can send 20 assistant messages a day
-
 ## 8. Future Enhancements (Post-MVP)
 - Email-based signup, email verification, and password reset
 - Limiting repeated failed logins (e.g. slowing down or blocking password guessing)
 - Recording past trips (trips with a start date before today)
 - Multiple destinations in one trip
 - Sharing a trip, or planning it together with other travelers
-- Live hotel prices and booking (LiteAPI is the preferred option; see [ai-spec.md §9](./ai-spec.md#9-hotel-search-options))
+- Activity suggestions based on Trip Type or destination
+- AI trip assistant (Claude + a Google Places search server): fully designed, then set aside on 2026-10-18 because it has running costs. The design is in git history (commit e2d37a3, `specs/ai-spec.md`) if it's picked up again
 - Maps, weather, and booking links for activities
 - Automated end-to-end browser tests (Playwright): written, but parked until the browser's system libraries are set up
 
@@ -130,8 +121,6 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | Works on mobile | Every P0 feature works on a 375px-wide mobile screen |
 | Data stays private | No user can read or change another user's trips (checked by tests) |
 | Deployed | The app runs at a public URL |
-| Assistant suggestions are real (phase 2) | In the hand-run quality checks, every suggested place exists and is at the destination ([ai-spec.md §13](./ai-spec.md#13-development-testing-and-rollout)) |
-| Assistant cost stays capped (phase 2) | Claude spending never goes past the daily cap (300 messages, about $3–6 a day at most) |
 
 ## 10. Constraints & Assumptions
 - Timeline: 2 weekends
@@ -139,7 +128,6 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Target platform: Web only, built responsively so it also works on mobile browsers (no native mobile app)
 - Assumption: Each trip has exactly one destination
 - Constraint: A trip lasts at most 14 days (keeps the plan screen and the PDF manageable)
-- Constraint: The assistant has a cost cap: 20 messages per user and 300 for everyone together, per day
 - Assumption: Dates are calendar dates with no time zone; activity times are local times at the destination
 
 ## 11. Tech Stack (High Level)
@@ -147,8 +135,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Backend: Python + FastAPI REST JSON API, with Pydantic validation, SQLAlchemy, and Alembic migrations. Users stay logged in with an `httpOnly` session cookie backed by a `sessions` table. Details in [backend-spec.md](./backend-spec.md#2-tech-stack).
 - Database: PostgreSQL, hosted on **Neon**. It stores users, login sessions, trips, and activities.
 - Hosting / Deployment: **Vercel**, one project for both: the React frontend as static files and the FastAPI backend as Vercel Functions, combined with Vercel Services at the same address, deployed automatically on every push to GitHub. Database migrations run automatically during each Vercel build. Preview deployments get their own Neon database branch. Development runs entirely on your own computer. Details in [backend-spec.md](./backend-spec.md#14-deployment).
-- AI (phase 2): Claude (`claude-sonnet-5-5`) through the Claude API, with our own search MCP server, which uses the Google Places API (New) for places and hotels. Details in [ai-spec.md](./ai-spec.md).
-- Third-party services (maps, weather, auth, etc.): None in the MVP besides the hosts above (Vercel, Neon). Phase 2 (the trip assistant) adds the Anthropic Claude API and the Google Places API (New). PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
+- Third-party services (maps, weather, auth, etc.): None in the MVP besides the hosts above (Vercel, Neon). PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
 
 ## 12. Open Questions
 - None right now.
@@ -159,7 +146,6 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | What happens to activities on days removed when a trip's dates are shortened? | Warn the user with how many activities will be deleted; if they confirm, delete them (US7) |
 | What is the maximum trip length? | 14 days (US3) |
 | Is the PDF generated in the browser or on the server? | In the browser; the backend has no export endpoint (US6) |
-| Should the app suggest activities? | **Yes, in phase 2:** a trip assistant powered by Claude, with real places from Google Places. It only suggests; the traveler adds (F8, US8, [ai-spec.md](./ai-spec.md)) |
 
 ## 13. Glossary
 | Term | Definition |
@@ -176,6 +162,3 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | Itinerary | The full, ordered view of a trip: its details plus every day and that day's activities. This is what gets exported. |
 | Print (PDF Export) | The "Print" button: downloads the itinerary as a PDF file, generated in the browser, that can be printed or kept on a phone. |
 | My Trips | The home screen after login: a welcome, an "Add new trip" button, and the list of the user's trips. |
-| Trip Assistant | The AI chat on the Trip Page: one conversation per trip, opened with "Plan with assistant". It suggests activities and hotels, but never changes the plan itself. |
-| Suggestion | A card from the assistant: an activity (with a day and time) the traveler can add with one click, or a hotel with a link to check prices. |
-| MCP server | Our small search service (`planmytrip-search`) that the assistant calls to find real places and hotels. MCP (Model Context Protocol) is a standard way for an AI model to use tools. |
