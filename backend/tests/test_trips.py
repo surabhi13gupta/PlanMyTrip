@@ -16,8 +16,9 @@ def test_create_trip_returns_trip_detail(user_client):
     assert trip["activities"] == []
     assert set(trip) == {
         "id", "destination", "startDate", "endDate", "tripType", "durationDays",
-        "createdAt", "updatedAt", "activities",
+        "createdAt", "updatedAt", "shareToken", "activities",
     }  # fmt: skip
+    assert trip["shareToken"] is None
 
 
 def test_create_trip_trims_destination(user_client):

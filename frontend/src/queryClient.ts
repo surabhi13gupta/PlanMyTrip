@@ -10,6 +10,7 @@ export const queryKeys = {
   // The destination is part of the key, so editing it fetches ideas for the new place.
   ideas: (tripId: string, destination: string, category: string) =>
     ['ideas', tripId, destination, category] as const,
+  shared: (shareToken: string) => ['shared', shareToken] as const,
 }
 
 /** Set by the router module: where to send the user when their session has ended. */

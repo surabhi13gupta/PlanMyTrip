@@ -32,6 +32,7 @@ export function makeTrip(overrides: Partial<TripDetail> = {}): TripDetail {
     durationDays: 5,
     createdAt: '2026-10-04T10:00:00Z',
     updatedAt: '2026-10-04T10:00:00Z',
+    shareToken: null,
     activities: [],
     ...overrides,
   }

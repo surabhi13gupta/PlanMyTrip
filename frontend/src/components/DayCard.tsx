@@ -5,9 +5,11 @@ import { activitiesForDay } from '../lib/activities'
 import { formatDayLabel } from '../lib/dates'
 import { toastError } from '../lib/errors'
 import { activityToValues, toActivityInput } from '../lib/schemas'
+import type { DayForecast } from '../lib/weather'
 import type { Activity, TripDay } from '../types'
 import { ActivityForm } from './ActivityForm'
 import { ConfirmDialog } from './ConfirmDialog'
+import { DayWeather } from './DayWeather'
 import { EditIcon, TrashIcon } from './Icons'
 import { MapLink } from './MapLink'
 import { buttonClass, cardClass, iconButtonClass, linkClass } from './ui'
@@ -20,10 +22,12 @@ interface DayCardProps {
   activities: Activity[]
   /** Opens the Ideas panel with this day picked ("Find ideas for Day N" on an empty day, §4.5). */
   onFindIdeas?: (dayNumber: number) => void
+  /** This day's forecast, if Open-Meteo has one (§4.5.3). */
+  forecast?: DayForecast
 }
 
 /** One day of the plan: heading, its activities in order, and "+ Add activity" (frontend-spec.md §4.5). */
-export function DayCard({ tripId, destination, day, activities, onFindIdeas }: DayCardProps) {
+export function DayCard({ tripId, destination, day, activities, onFindIdeas, forecast }: DayCardProps) {
   const mutations = useActivityMutations(tripId)
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -41,7 +45,10 @@ export function DayCard({ tripId, destination, day, activities, onFindIdeas }: D
         <h2 id={headingId} className="text-lg font-semibold text-primary">
           Day {day.dayNumber}
         </h2>
-        <span className="text-[0.9375rem] text-muted">{formatDayLabel(day.date)}</span>
+        <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+          <span className="text-[0.9375rem] text-muted">{formatDayLabel(day.date)}</span>
+          <DayWeather date={day.date} forecast={forecast} />
+        </span>
       </div>
 
       {items.length === 0 && !adding && (

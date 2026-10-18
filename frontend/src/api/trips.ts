@@ -1,4 +1,13 @@
-import type { Activity, ActivityInput, IdeasResponse, Trip, TripDetail, TripInput } from '../types'
+import type {
+  Activity,
+  ActivityInput,
+  IdeasResponse,
+  ShareInfo,
+  SharedTrip,
+  Trip,
+  TripDetail,
+  TripInput,
+} from '../types'
 import { api } from './client'
 
 export const tripPaths = {
@@ -7,6 +16,8 @@ export const tripPaths = {
   activity: (tripId: string, activityId: string) => `/trips/${tripId}/activities/${activityId}`,
   ideas: (tripId: string, category: string) =>
     `/trips/${tripId}/ideas?category=${encodeURIComponent(category)}`,
+  share: (tripId: string) => `/trips/${tripId}/share`,
+  shared: (shareToken: string) => `/shared/${encodeURIComponent(shareToken)}`,
 }
 
 export type TripUpdate = Partial<TripInput> & { confirmDeleteActivities?: boolean }
@@ -27,4 +38,9 @@ export const tripsApi = {
 
   ideas: (tripId: string, category: string) =>
     api.get<IdeasResponse>(tripPaths.ideas(tripId, category)),
+
+  share: (tripId: string) => api.post<ShareInfo>(tripPaths.share(tripId)),
+  unshare: (tripId: string) => api.delete(tripPaths.share(tripId)),
+  // Public: no login needed (US13).
+  shared: (shareToken: string) => api.get<SharedTrip>(tripPaths.shared(shareToken)),
 }

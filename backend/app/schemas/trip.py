@@ -97,7 +97,34 @@ class TripOut(ResponseModel):
 
 
 class TripDetailOut(TripOut):
+    share_token: str | None
     activities: list[ActivityOut]
+
+
+# ---- Sharing ----
+
+
+class ShareOut(ResponseModel):
+    share_token: str
+    shared_at: UtcTimestamp
+
+
+class SharedActivityOut(ResponseModel):
+    day_number: int
+    title: str
+    time: HourMinute | None
+    notes: str | None
+
+
+class SharedTripOut(ResponseModel):
+    """The public, read-only copy: no IDs, timestamps, or owner (contract §6.17)."""
+
+    destination: str
+    start_date: date
+    end_date: date
+    trip_type: TripType
+    duration_days: int
+    activities: list[SharedActivityOut]
 
 
 class TripListOut(ResponseModel):
