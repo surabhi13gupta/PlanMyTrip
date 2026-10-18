@@ -12,9 +12,11 @@ function render(user: User | null) {
 describe('AboutPage', () => {
   it('says what the app does and invites a logged-out visitor to sign up', () => {
     render(null)
-    expect(screen.getByRole('heading', { level: 1, name: 'About PlanMyTrip' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'What you can do' })).toBeInTheDocument()
-    expect(screen.getByText('Your trips are private to your account.')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Plan your trip, one day at a time' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual([
+      'Day by day', 'Ideas built in', 'On the map', 'Ready to go',
+    ])
+    expect(screen.getByRole('list', { name: 'Good to know' })).toHaveTextContent('FreeNo adsPrivate to you')
     expect(screen.getByRole('link', { name: 'Create a free account' })).toHaveAttribute('href', '/signup')
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Log out' })).not.toBeInTheDocument()
