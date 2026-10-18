@@ -11,6 +11,18 @@ export function useTrip(tripId: string) {
   return useQuery({ queryKey: queryKeys.trip(tripId), queryFn: () => tripsApi.get(tripId) })
 }
 
+/** One idea category, fetched the first time its tab opens and kept for the visit (§4.5.1). */
+export function useIdeas(tripId: string, destination: string, category: string, enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.ideas(tripId, destination, category),
+    queryFn: () => tripsApi.ideas(tripId, category),
+    enabled,
+    staleTime: Infinity,
+    // A retry could spend another of the month's free searches; the panel has a Retry button.
+    retry: false,
+  })
+}
+
 // After any change the app refetches from the server; nothing is shown before it confirms
 // (frontend-spec.md §6).
 

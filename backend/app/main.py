@@ -5,7 +5,7 @@ from fastapi import APIRouter, FastAPI
 from .config import get_settings
 from .errors import install_error_handlers
 from .middleware import RequestLogMiddleware, RequireJsonMiddleware
-from .routers import activities, auth, health, trips
+from .routers import activities, auth, health, ideas, trips
 
 logging.basicConfig(level=get_settings().log_level, format="%(levelname)s %(name)s %(message)s")
 
@@ -20,4 +20,5 @@ api_v1.include_router(health.router)
 api_v1.include_router(auth.router)
 api_v1.include_router(trips.router)
 api_v1.include_router(activities.router)
+api_v1.include_router(ideas.router)
 app.include_router(api_v1)

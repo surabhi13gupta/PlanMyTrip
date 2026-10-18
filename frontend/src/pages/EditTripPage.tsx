@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { ApiError } from '../api/client'
 import { tripPaths } from '../api/trips'
+import { BackLink } from '../components/BackLink'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ErrorState, Skeleton } from '../components/States'
 import { TripForm } from '../components/TripForm'
@@ -56,7 +57,10 @@ function EditTrip({ trip }: { trip: TripDetail }) {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-2xl font-semibold text-primary">Edit trip</h1>
+      <div className="grid gap-2">
+        <BackLink to={`/trips/${trip.id}`}>Back to trip</BackLink>
+        <h1 className="text-2xl font-semibold text-primary">Edit trip</h1>
+      </div>
       <TripForm
         submitLabel="Save"
         originalStartDate={trip.startDate}

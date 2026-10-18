@@ -1,6 +1,6 @@
 # Frontend Spec — PlanMyTrip
 
-> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-04
+> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-18
 > Related: [goal-spec.md](./goal-spec.md), [api-contract-spec.md](./api-contract-spec.md)
 
 ## 1. Overview
@@ -34,6 +34,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `/trips/new` | New Trip | Yes | "Plan a new trip" form | US3 |
 | `/trips/:tripId` | Trip Page | Yes | A trip's days and activities, plus Print, Delete, and Edit | US5, US6, US7 |
 | `/trips/:tripId/edit` | Edit Trip | Yes | Change the trip's dates, destination, or Trip Type | US7 |
+| `/about` | About | No (works logged in or out) | What PlanMyTrip does, in a few lines | US10 |
 | `*` | Not Found | No | 404 page with a link back to My Trips | — |
 
 **Route rules**
@@ -77,7 +78,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ### 4.4 New Trip
 - **Route:** `/trips/new`
 - **Purpose:** Create a trip (US3).
-- **Layout / sections** (follows the "New trip screen" sketch): The title **"Plan a new trip"**, then `TripForm` with fields in this order: **From** (start date), **To** (end date), **Destination**, **Trip Type**. The submit button is labelled **"Plan"**. The form is one column, at most about 640px wide.
+- **Layout / sections** (follows the "New trip screen" sketch): A **"← My Trips"** back link (section 4.9), then the title **"Plan a new trip"**, then `TripForm` with fields in this order: **From** (start date), **To** (end date), **Destination**, **Trip Type**. The submit button is labelled **"Plan"**. The form is one column, at most about 640px wide.
 - **Components used:** `AppLayout`, `TripForm`
 - **Data needed (API calls):** `POST /trips`
 - **User interactions:** Pick the dates, type the destination, and choose a Trip Type (four buttons: Solo, Couple, Family, Friends). The date pickers don't offer dates before today. The form shows the trip length as you pick dates, e.g. "5 days". Clicking "Plan" creates the trip and opens its page, showing Day 1 through Day N ready for activities. "Cancel" goes back to `/trips`.
@@ -85,14 +86,15 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 
 ### 4.5 Trip Page (Day-by-Day Plan)
 - **Route:** `/trips/:tripId`
-- **Purpose:** Plan activities for each day (US5), print the itinerary (US6), and edit or delete the trip (US7). This one page covers both the "Day 1 … Day N" and the "Saved trip" sketches.
+- **Purpose:** Plan activities for each day (US5), print the itinerary (US6), edit or delete the trip (US7), browse ideas and add them to days (US8), and open activities on a map (US9). This one page covers both the "Day 1 … Day N" and the "Saved trip" sketches.
 - **Layout / sections** (follows the "Saved trip" sketch):
-  1. **Trip header:** the destination as the page title, "From Oct 10 → To Oct 14, 2026 · 5 days" below it, the Trip Type badge, and a small **"Edit"** link that opens `/trips/:tripId/edit`.
+  0. **Back link:** "← My Trips" above the trip header (section 4.9).
+  1. **Trip header:** the destination as the page title, "From Oct 10 → To Oct 14, 2026 · 5 days" below it, the Trip Type badge, a small **"Edit"** link that opens `/trips/:tripId/edit`, and an **"Ideas for <destination>"** button (secondary style, lightbulb icon) that opens the Ideas panel (section 4.5.1).
   2. **Day chips:** a strip of chips ("Day 1 · Oct 10", …) that scrolls sideways on mobile. Clicking a chip scrolls to that day.
   3. **Days:** a `DayCard` for each day, from Day 1 to Day N, stacked vertically. Each card lists its activities and has an "+ Add activity" button.
   4. **Action bar** at the bottom: **"Print"** (main button) and **"Delete"** (danger button). On mobile, the bar sticks to the bottom of the screen, so both are always reachable even on a 14-day trip.
-- **Components used:** `AppLayout`, `TripHeader`, `DayNav`, `DayCard`, `ActivityItem`, `ActivityForm`, `TripActions`, `ConfirmDialog`, `PrintButton`
-- **Data needed (API calls):** `GET /trips/:tripId` (the trip with its activities), `POST /trips/:tripId/activities`, `PATCH /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId`
+- **Components used:** `AppLayout`, `TripHeader`, `DayNav`, `IdeasPanel`, `DayCard`, `ActivityItem`, `MapLink`, `ActivityForm`, `TripActions`, `ConfirmDialog`, `PrintButton`
+- **Data needed (API calls):** `GET /trips/:tripId` (the trip with its activities), `GET /trips/:tripId/ideas?category=…` (Ideas panel), `POST /trips/:tripId/activities`, `PATCH /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId`
 - **User interactions:**
   - **Add:** "+ Add activity" opens an `ActivityForm` inside that day's card (title, optional time, optional notes). Save or Cancel.
   - **Edit an activity:** Clicking an activity's edit icon replaces it with an `ActivityForm` that is already filled in.
@@ -102,12 +104,54 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
   - **Sort:** Within a day, activities with a time appear first, in time order. Activities without a time follow, in the order they were created (the `sortActivities` helper).
   - **Days:** The list of days is worked out from the trip's start and end dates (the `getTripDays` helper). The user never creates or deletes days.
   - **Day numbers:** Each activity belongs to a day number (Day 1, Day 2, …), not to a calendar date. If the trip's dates move, the activities move with them; e.g. Day 2's activities follow Day 2 to its new date.
-- **Loading / empty / error states:** A skeleton header and cards while loading. A day with no activities shows "No activities planned" in muted text. If saving fails, a toast appears and the form stays open with what the user typed. A trip that isn't found shows the Not Found page.
+  - **Map link:** Each activity shows a small "Map" link (pin icon + "Map") under its title and notes (section 4.5.2).
+- **Loading / empty / error states:** A skeleton header and cards while loading. A day with no activities shows "No activities planned" in muted text, followed by a "Find ideas for Day 3" link that opens the Ideas panel with Day 3 already picked as the day to add to. If saving fails, a toast appears and the form stays open with what the user typed. A trip that isn't found shows the Not Found page.
+
+#### 4.5.1 Ideas panel (US8)
+- **Opening:** the "Ideas for <destination>" button in the trip header, or "Find ideas for Day N" on an empty day. The panel remembers the last category and day picked while the page is open.
+- **Layout:**
+  - **Large screens (`xl`, 1280px and wider):** a panel **docked on the right**, 440px wide, sticky and as tall as the window. While it's open the Trip Page widens from 1024px to 1280px, so the day plan keeps its normal width on the left and added ideas appear in their day straight away.
+  - **Tablets and small laptops (`sm` to `xl`, 640–1279px):** a **drawer from the right**, 440px wide and the full height of the window, over the dimmed page.
+  - **Phones (below 640px):** a **sheet that slides up**, almost the full screen tall (it leaves a strip of the dimmed page at the top), with a drag handle and a close button.
+  - Below `xl` the panel covers part of the page, so the page behind it doesn't scroll while it's open, and after adding, a toast "Added to Day 2" confirms it. Tapping the dimmed page closes the panel.
+  - **Only one scrollbar:** the panel's header, day picker and tabs stay put; only the list of ideas scrolls, with a thin scrollbar. Nothing in the panel scrolls sideways.
+  - Revised after review on 2026-10-18: the first build (400px panel inside the 1024px page, tabs in one sideways-scrolling row) felt cramped and showed extra scrollbars.
+  - It's a dialog (`role="dialog"`, labelled "Ideas for Paris, France"); Escape and the ✕ button close it, and focus returns to the button that opened it.
+- **Header:** "Ideas for Paris, France", the ✕ button, and the **Add to** day picker: a select with every day ("Day 2 · Sun, Oct 11"). It starts on the day the panel was opened for, else today's day if the trip is under way, else Day 1. Every "Add" button in the panel uses this day.
+- **Category tabs** (`role="tablist"`): from `sm` up, the tabs **wrap onto two or three lines**, so all eight are visible with no sideways scrolling. On phones they're one row that you swipe sideways, with the scrollbar hidden and the row's right edge fading out to show there's more. Five for every trip, then three chosen by the Trip Type (the `ideasForTripType` helper in `lib/ideas.ts`); each has a small icon. The panel opens on **Top sights**. The `id` is what the frontend sends to the API (section 6.13 of the API contract); the backend turns it into the search words.
+
+  | Shown for | Tab label (`id` → search words) |
+  |---|---|
+  | Every trip | Top sights (`top-sights` → "top attractions") · Museums (`museums` → "museums") · Parks (`parks` → "parks and gardens") · Restaurants (`restaurants` → "restaurants") · Cafés (`cafes` → "cafes") |
+  | Solo | Walking tours (`walking-tours`) · Viewpoints (`viewpoints`) · Markets (`markets`) |
+  | Couple | Romantic dinner (`romantic-dinner` → "romantic restaurants") · Viewpoints (`viewpoints`) · Wine bars (`wine-bars`) |
+  | Family | Kid-friendly (`kid-friendly` → "kid friendly activities") · Zoos & aquariums (`zoos-aquariums` → "zoo aquarium") · Playgrounds (`playgrounds`) |
+  | Friends | Nightlife (`nightlife`) · Food markets (`food-markets`) · Group activities (`group-activities`) |
+
+- **Idea cards** (`IdeaCard`), up to 10 per category, in Google Maps' order. The first **5** show at once; a **"Show 5 more"** button under them shows the rest, so the list stays short. Each card has room to breathe (16px between cards, 20px side padding in the panel):
+  - A 72px square **photo** on the left (rounded; a light placeholder with the category icon if there's no photo or it fails to load). Photos are `loading="lazy"` with `referrerpolicy="no-referrer"`.
+  - **Name** (semi-bold), then **⭐ 4.7 (310k)** (rating and review count, shortened) and the **price level** ("$$") when known, then the **type and address** ("Art museum · 1 Rue de la Légion d'Honneur") in muted text. The name and the address can each **wrap onto two lines** before being cut with "…", so most names show in full.
+  - A row under the text with the 📍 **Map** link (`MapLink`, the same as on activities, searching "<name>, <address>") on the left and an **"Add to Day 2"** button (primary, at least 40px tall for easy tapping) on the right.
+  - After adding, the button becomes **"✓ Added to Day 2"** (green, disabled) for the rest of the visit. Picking another day re-enables it, so the same idea can go on two days.
+- **Adding** uses the existing `POST /trips/:tripId/activities`: `title` = the place name (cut to 100 characters), `time` = none, `notes` = the address (cut to 500). The trip is refreshed, so the activity appears in its day. Failures show the usual error toast and leave the button as it was.
+- **Loading:** three skeleton cards. A category is fetched only when its tab is first opened; switching back is instant (TanStack Query keeps it for the visit; the backend keeps it for 30 days).
+- **Empty:** "No museums found for Paris, France." plus a "Search Google Maps instead" link.
+- **Errors** (`IDEAS_UNAVAILABLE`, `IDEAS_DAILY_LIMIT`, network): a short message in the panel, with **Retry** and a "Search Google Maps instead" link (`mapsSearchUrl("<search words> in <destination>")`) so the traveler is never stuck:
+  - `IDEAS_UNAVAILABLE`: "Ideas aren't available right now. This usually means this month's free searches are used up."
+  - `IDEAS_DAILY_LIMIT`: "You've looked up 20 new idea lists today. Saved lists still work; new ones are back tomorrow."
+- **Credit line** at the bottom of the panel: "Results from Google Maps, via SerpApi." (muted, small).
+- **Destination changes:** if the trip's destination is edited, the next ideas fetched are for the new destination (the cache key includes it).
+
+#### 4.5.2 Map links on activities (US9)
+- **What:** each `ActivityItem` shows a small "Map" link (pin icon + the word "Map") under its title and notes, so the edit and delete icons keep their place and phones keep room for the title. It opens `mapsSearchUrl("<activity title>, <destination>")`, e.g. "Visit the Louvre, Paris, France", in a new tab, with the same `target`/`rel` as the chips.
+- **Accessible name:** "Open Visit the Louvre on Google Maps (opens in a new tab)".
+- **Search quality:** the search uses the title as typed, so "Lunch" finds lunch places nearby while "Musée d'Orsay" finds the museum. An address field for exact results is future work (goal spec section 8).
+- **In the PDF:** each activity in `ItineraryPdf` ends with a small "Map" link (react-pdf's `Link`) with the same address, clickable in PDF viewers. Printed on paper it's just the word "Map", so it stays short.
 
 ### 4.6 Edit Trip
 - **Route:** `/trips/:tripId/edit`
 - **Purpose:** Change a trip's dates, destination, or Trip Type (US7).
-- **Layout / sections:** The title "Edit trip", then the same `TripForm` as New Trip, filled in with the trip's details. The submit button is labelled "Save". (Deleting a trip is on the Trip Page, not here.)
+- **Layout / sections:** A **"← Back to trip"** link (section 4.9; it leaves without saving, like Cancel), then the title "Edit trip", then the same `TripForm` as New Trip, filled in with the trip's details. The submit button is labelled "Save". (Deleting a trip is on the Trip Page, not here.)
 - **Components used:** `AppLayout`, `TripForm`, `ConfirmDialog`
 - **Data needed (API calls):** `GET /trips/:tripId`, `PATCH /trips/:tripId`
 - **User interactions:**
@@ -120,11 +164,47 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Purpose:** Handle unknown or inaccessible URLs.
 - **Layout / sections:** The mountain banner, then a "Page not found" message with a link to My Trips.
 
+### 4.8 About (US10)
+- **Route:** `/about`. Public: logged-in and logged-out visitors both see it. Logged in, the banner shows the name and Log out as usual.
+- **Opened from:** the **"About PlanMyTrip"** link in the `SiteFooter` at the bottom of every page (logged-in pages, Signup, Login, Not Found, and About itself).
+- **Layout:** `SiteBanner`, then one column about 640px wide. Short and visual: every line of text is a few words, and the whole page fits on a laptop screen without scrolling (on a phone, about one and a half screens). Revised after review on 2026-10-18: the first version, with two bulleted lists, read as too wordy.
+  1. The "← Back" link (section 4.9).
+  2. **Hero:** a small uppercase label "About PlanMyTrip", the heading **"Plan your trip, one day at a time"**, and one line under it: "Build a day-by-day plan, find things to do, and take it with you."
+  3. **Four feature cards** in a 2×2 grid (two columns on phones too). Each card: an icon in a soft blue circle, a short bold title, and one short line.
+
+     | Icon | Title | Line |
+     |---|---|---|
+     | Calendar | Day by day | Up to 14 days, with times and notes. |
+     | Lightbulb | Ideas built in | Top sights, food and more, added in a tap. |
+     | Map pin | On the map | Open any stop in Google Maps. |
+     | Document | Ready to go | Download your plan as a PDF. |
+
+  4. **Three pills** in a row: "Free", "No ads", "Private to you" (each with a check mark).
+  5. **Call to action:** "Create a free account" (primary button, to `/signup`) when logged out; "Go to My Trips" (to `/trips`) when logged in.
+  6. **Small print** (muted, small): "Ideas come from Google Maps, via SerpApi."
+- **Data needed:** none (the text is part of the app). **Components used:** `SiteBanner`, `BackLink`, `SiteFooter`.
+
+### 4.9 Back links (US11)
+- **What:** a `BackLink` at the **top left of the page content**, above the page heading, on every page below My Trips. Same place and style everywhere: a left arrow and a short label, primary color, medium weight, at least 44px tall, with the arrow moving left slightly on hover.
+
+  | Page | Label | Goes to |
+  |---|---|---|
+  | New Trip | ← My Trips | `/trips` |
+  | Trip Page | ← My Trips | `/trips` |
+  | Edit Trip | ← Back to trip | `/trips/:tripId` (without saving, like Cancel) |
+  | About | ← Back | The previous page in the app (browser history); `/` if About was opened directly (e.g. from a bookmark) |
+
+- **Why fixed destinations:** on trip pages the link always goes to the same, named place, so it does what its label says even after a refresh or when the page was opened from a link. Only About, which can be reached from anywhere, uses history.
+- My Trips, Signup and Login have no back link (they're the starting points); Not Found already has "Go to My Trips".
+- It's a real link (`<a>`), except About's "← Back" when it uses history, which is a button.
+
 ## 5. Component Inventory
 | Component | Responsibility | Props | Used In |
 |-----------|----------------|-------|---------|
 | `AppLayout` | Page frame: `SiteBanner` (with the user's name and Log out on the right) above the content area | `children` | All logged-in pages |
 | `AuthLayout` | `SiteBanner`, then a centered column (no card) with the page heading and form | `title`, `children` | Signup, Login |
+| `BackLink` | "← My Trips" / "← Back to trip" / "← Back" at the top left of inner pages (section 4.9) | `to?` (omit to go back in history), `children` (label) | New Trip, Trip Page, Edit Trip, About |
+| `SiteFooter` | Small footer with the "About PlanMyTrip" link (section 4.8) | — | `AppLayout`, `AuthLayout`, Not Found, About |
 | `SiteBanner` | The mountain image across the top of every page, with the logo top left and optional content top right (section 10.1) | `children?` (right side) | `AppLayout`, `AuthLayout`, Not Found |
 | `Logo` | The PlanMyTrip logo: map-pin mark + `Wordmark`, as inline SVG; links home | `variant` (`onImage` / `onLight`) | `SiteBanner` |
 | `Wordmark` | "Plan*My*Trip" with the handwritten "My"; inherits size and color from where it's placed | — | `Logo`, the My Trips welcome heading |
@@ -136,8 +216,11 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `TripCard` | One trip in the list: destination, dates, Trip Type | `trip` | My Trips |
 | `TripHeader` | Destination, dates, Trip Type badge, and Edit link | `trip` | Trip Page |
 | `DayNav` | Horizontal day chips that scroll to a day | `days` | Trip Page |
+| `IdeasPanel` | The Ideas panel: day picker, category tabs, idea cards, loading/empty/error states; docked on `xl`, a right-hand drawer from `sm`, a sheet on phones (section 4.5.1) | `trip`, `days`, `open`, `dayNumber`, `onDayChange`, `onClose` (the Trip Page holds the picked day, so "Find ideas for Day N" can set it) | Trip Page |
+| `IdeaCard` | One idea: photo, name, rating, address, Map link, Add button | `idea`, `icon`, `dayNumber`, `added`, `adding`, `onAdd` | `IdeasPanel` |
+| `MapLink` | A "Map" link that opens a Google Maps search in a new tab (section 4.5.2) | `query`, `label` | `ActivityItem` |
 | `DayCard` | One day: heading, sorted activities, add button | `day`, `activities`, `tripId` | Trip Page |
-| `ActivityItem` | Shows one activity with edit/delete icons | `activity`, `onEdit`, `onDelete` | `DayCard` |
+| `ActivityItem` | Shows one activity with its Map link and edit/delete icons | `activity`, `destination`, `onEdit`, `onDelete` | `DayCard` |
 | `ActivityForm` | Inline add/edit form for an activity | `defaultValues?`, `onSubmit`, `onCancel` | `DayCard` |
 | `TripActions` | Bottom action bar with Print and Delete (sticky on mobile) | `trip`, `activities`, `onDelete` | Trip Page |
 | `ConfirmDialog` | Accessible confirmation dialog (native `<dialog>`) | `open`, `title`, `message`, `confirmLabel`, `onConfirm`, `onCancel`, `destructive?` | Trip Page, Edit Trip |
@@ -293,8 +376,8 @@ Every page starts with the same banner: a mountain photo across the top, with th
 - **Targets:** Initial JavaScript ≤ 200 KB gzipped (not counting the PDF library). LCP < 2.5s on simulated 4G.
 
 ## 14. Testing Strategy
-- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
-- **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day), the Edit Trip warning dialog, and `ProtectedRoute` redirects. API calls are mocked with MSW.
+- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), `mapsSearchUrl` (encodes spaces, commas, `&`, accents), `ideasForTripType` (five common categories + three per type), `ideaToActivity` (title and notes cut to their limits), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
+- **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day, Map links with the right address and `target`/`rel`), `IdeasPanel` (tabs per Trip Type, fetching a category on first open, Add to the picked day calls the activities API, the Added state, empty and error states with the Google Maps fallback), the Edit Trip warning dialog, `ProtectedRoute` redirects, `BackLink` (fixed link, or history back with a fallback to `/`), and the About page (logged-out and logged-in call to action; reachable without logging in). API calls are mocked with MSW.
 - **End-to-end — future scope (parked):** The Playwright tests are written but commented out in `e2e/planmytrip.spec.ts`, and the `npm run e2e` script is removed, because Chromium's system libraries aren't installed on this machine. To bring them back: run `sudo npx playwright install-deps chromium`, uncomment the file, and restore the script. Until then, the flows below are checked by hand in the browser. What they cover: one test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px. A second test: refresh keeps the user logged in; closing the page with an unsaved activity, then reopening, asks for login and shows the activity saved.
 
 ## 15. Project Structure
@@ -316,7 +399,7 @@ frontend/                 # vercel.json lives at the repository root (see backen
       trips.ts            # trips + activities calls
     hooks/                # useAuth, useTrips, useTrip, useActivityMutations
     pages/                # SignupPage, LoginPage, TripsPage, NewTripPage,
-                          # TripPlanPage, EditTripPage, NotFoundPage
+                          # TripPlanPage, EditTripPage, AboutPage, NotFoundPage
     components/           # components from section 5
     pdf/
       ItineraryPdf.tsx
@@ -324,6 +407,8 @@ frontend/                 # vercel.json lives at the repository root (see backen
     lib/
       dates.ts
       activities.ts       # sortActivities, countActivitiesBeyondDay
+      maps.ts             # mapsSearchUrl: Google Maps search links (no API key)
+      ideas.ts            # ideasForTripType: the idea categories per Trip Type
       schemas.ts          # Zod schemas
     types/
       index.ts            # User, Trip, Activity, TripType (match API shapes)
@@ -348,6 +433,11 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 ### Resolved
 | Question | Decision |
 |----------|----------|
+| How does the app suggest activities without costs? | **An Ideas panel with Google Maps results via SerpApi's free plan**, five common categories plus three per Trip Type, each idea addable to any day; and a **Map link on every activity** (sections 4.5.1–4.5.2). No AI |
+| Ideas as links out to Google Maps, or listed in the app? | **Listed in the app**, in a right-hand panel (a sheet on phones), with "Add to Day N". The first version (chips linking to Google Maps) was replaced after review on 2026-10-18 |
+| The first Ideas panel felt cramped and showed extra scrollbars. What changed? | (Review, 2026-10-18.) **Wider panel** (440px) that docks only from 1280px, with the page widening to make room; a **drawer** on tablets and small laptops and a near-full-screen **sheet** on phones; **tabs wrap** instead of scrolling sideways; **5 ideas at first** with "Show 5 more"; names and addresses wrap to two lines; the page behind a drawer or sheet doesn't scroll (section 4.5.1) |
+| Where does the panel open from? | The **"Ideas for <destination>" button** in the trip header, and **"Find ideas for Day N"** on empty days (that day pre-picked) |
+| Map links in the PDF too? | **Yes:** a small clickable "Map" on each activity |
 | Banner photo: the 700×350 `mountains.jpg`, or a larger one? | First the Seiser Alm photo (Unsplash); then **Mount Fuji with the Chureito Pagoda by Tomáš Malík (Pexels)**, 1920×973, chosen from four candidates (section 10.1) |
 | Banner height? | Taller: 260 / 340 / 420px on phones / tablets / laptops (section 10.1) |
 | Name or username in the banner? | **Full name** ("Surabhi Gupta"), or the username if there's no name; shortened with "…" if long (section 10.1) |

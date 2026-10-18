@@ -1,6 +1,6 @@
 # Backend Spec — PlanMyTrip
 
-> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-04
+> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-18
 > Related: [goal-spec.md](./goal-spec.md), [frontend-spec.md](./frontend-spec.md), [api-contract-spec.md](./api-contract-spec.md)
 
 ## 1. Overview
@@ -107,6 +107,20 @@ This is the same on every database: your local Docker database, the test databas
 | created_at | timestamptz | not null, default now() | Also used to order activities without a time |
 | updated_at | timestamptz | not null, default now() | |
 
+### 4.5 idea_searches
+Saved SerpApi answers for the Ideas panel, so each search is paid for (out of the free 250 a month) only once per 30 days.
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | uuid | PK | |
+| query_key | varchar(250) | not null, unique | The search as sent, lowercased with spaces collapsed: `"museums in paris, france"` |
+| category | varchar(30) | not null | e.g. `museums` |
+| results | jsonb | not null | The `ideas` list exactly as the API returns it (already trimmed to our fields) |
+| fetched_at | timestamptz | not null, default now() | When SerpApi was asked. Older than 30 days → asked again and the row updated |
+| fetched_by | uuid | null, FK → users.id, on delete set null | Who triggered the search, for the 20-a-day limit |
+
+Not linked to trips: two trips to "Paris, France" share the same saved results. Added by migration `0004_idea_searches`.
+
 ### Relationships
 - A user has many trips; a trip belongs to one user.
 - A trip has many activities; an activity belongs to one trip.
@@ -118,6 +132,8 @@ This is the same on every database: your local Docker database, the test databas
 - `sessions.user_id`
 - `trips (user_id, start_date)`: lists a user's trips in date order
 - `activities (trip_id, day_number)`: loads a trip's plan
+- `idea_searches.query_key`: unique (cache lookup)
+- `idea_searches (fetched_by, fetched_at)`: counts a user's searches today
 
 ## 5. Business Logic / Services
 | Service | Responsibilities | Key Rules |
@@ -125,6 +141,7 @@ This is the same on every database: your local Docker database, the test databas
 | `auth_service` | Sign up, log in, log out, look up the current user | Signup stores the name trimmed, as typed, or `NULL` if it's missing or empty. Usernames lowercased before saving and comparing. Signup with a taken username → 409 `USERNAME_TAKEN`. Wrong username **or** password → the same 401 `INVALID_CREDENTIALS`, and a dummy hash check runs when the user doesn't exist, so response timing doesn't reveal which usernames exist |
 | `session_service` | Create, look up, renew, and delete sessions | A session ends after 12 hours without any request (idle timeout). On each request, if less than 11 hours remain, `expires_at` is pushed back to 12 hours from now (so it is written at most once an hour). Expired sessions are treated as missing and deleted when found. Logging out when the page closes is handled by the frontend (see [frontend-spec.md §8](./frontend-spec.md#8-authentication-client-side)); the idle timeout cleans up sessions from tabs that were simply closed |
 | `trip_service` | List, create, read, update, and delete trips | Every query filters by the current user; another user's trip is "not found" (404), never "forbidden", so trip IDs can't be probed. See the trip rules below |
+| `idea_service` | Idea lists for the Ideas panel (section 7) | Checks the trip belongs to the user. Builds the query `"<search words> in <destination>"` from the category table in [frontend-spec.md §4.5.1](./frontend-spec.md#451-ideas-panel-us8) (kept in `app/services/idea_categories.py`). A saved row younger than 30 days is returned without calling SerpApi. Otherwise: if the user already triggered 20 searches today (UTC) → 429 `IDEAS_DAILY_LIMIT`; else call SerpApi, keep the first 10 places, save (insert or update the row), and return them. If SerpApi fails but an older saved row exists, that row is returned instead of an error |
 | `activity_service` | Create, update, and delete activities | The trip must belong to the current user. `day_number` must be between 1 and the trip's length. Activities are returned sorted: those with a time first, by time; then those without, by `created_at` |
 
 **Trip rules**
@@ -152,8 +169,9 @@ This is the same on every database: your local Docker database, the test databas
 | Service | Purpose | Failure Handling |
 |---------|---------|------------------|
 | Neon (PostgreSQL) | Stores all data | If the database can't be reached, requests return 503 `SERVICE_UNAVAILABLE` and the error is logged. A paused Neon database wakes up automatically on the first request, which may take a moment longer |
+| **SerpApi** (Google Maps engine) | Places for the Ideas panel: `GET https://serpapi.com/search.json?engine=google_maps&type=search&q=<query>&hl=en&api_key=…`. From the answer's `local_results`, keep `place_id`, `title`, `rating`, `reviews`, `price`, `type`, `address`, `thumbnail` | 10-second timeout, no retry (a retry would spend another search). Any failure, including "run out of searches", becomes 503 `IDEAS_UNAVAILABLE` (or an older saved result, if there is one) and is logged at `WARNING` without the key. Called with `httpx2`. Free plan: 250 searches a month, about 50 an hour |
 
-No other third-party services in the MVP.
+No other third-party services.
 
 ## 8. Validation
 - **Input validation approach:** Every request body is a Pydantic model with the same rules as the frontend's Zod schemas ([frontend-spec.md §9](./frontend-spec.md#9-forms--validation)). The API contract is the single source of truth for those rules; both sides follow it. Text fields are trimmed before checking their length. Request models use `extra="forbid"`, so unknown fields (such as `dayNumber` when editing an activity) are rejected with 400.
@@ -185,6 +203,9 @@ No other third-party services in the MVP.
 | `SESSION_COOKIE_SECURE` | Adds `Secure` to the cookie | No | `false` in development, `true` otherwise |
 | `SESSION_IDLE_HOURS` | Hours without any request before a session ends | No | `12` |
 | `LOG_LEVEL` | Logging level | No | `INFO` |
+| `SERPAPI_KEY` | SerpApi key for the Ideas panel. Set in Vercel for Production and Preview, backend only; never sent to the browser or logged | No | Unset: the ideas endpoint returns 503 `IDEAS_UNAVAILABLE` and the rest of the app works normally |
+| `IDEAS_CACHE_DAYS` | Days a saved idea list is reused | No | `30` |
+| `IDEAS_DAILY_SEARCHES_PER_USER` | New idea searches a user may trigger per day (UTC) | No | `20` |
 
 The Vercel–Neon integration sets `DATABASE_URL` and `DATABASE_URL_UNPOOLED` automatically.
 
@@ -264,10 +285,11 @@ PlanMyTrip/
       db.py                 # engine (NullPool), session dependency
       deps.py               # get_db, get_current_user
       errors.py             # ApiError + standard error responses
-      models/               # SQLAlchemy: user.py, session.py, trip.py, activity.py
+      models/               # SQLAlchemy: user.py, session.py, trip.py, activity.py, idea_search.py
       schemas/              # Pydantic request/response models (camelCase aliases)
-      routers/              # auth.py, trips.py, activities.py, health.py
-      services/             # auth_service.py, session_service.py, trip_service.py, activity_service.py
+      routers/              # auth.py, trips.py, activities.py, ideas.py, health.py
+      services/             # auth_service.py, session_service.py, trip_service.py, activity_service.py,
+                            # idea_service.py, idea_categories.py, serpapi.py (the only code that calls SerpApi)
       security.py           # password hashing, token generation and hashing
     tests/
       conftest.py           # test database, transaction rollback, logged-in client fixtures
@@ -275,6 +297,7 @@ PlanMyTrip/
       test_trips.py
       test_activities.py
       test_ownership.py
+      test_ideas.py         # SerpApi replaced by a fake: cache hit/miss/expiry, daily limit, errors, ownership
   frontend/                 # see frontend-spec.md
   specs/
 ```

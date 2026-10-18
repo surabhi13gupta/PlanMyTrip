@@ -9,16 +9,21 @@ import type { Activity, TripDay } from '../types'
 import { ActivityForm } from './ActivityForm'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditIcon, TrashIcon } from './Icons'
-import { buttonClass, cardClass, iconButtonClass } from './ui'
+import { MapLink } from './MapLink'
+import { buttonClass, cardClass, iconButtonClass, linkClass } from './ui'
 
 interface DayCardProps {
   tripId: string
+  /** For the Map links (§4.5.2). */
+  destination: string
   day: TripDay
   activities: Activity[]
+  /** Opens the Ideas panel with this day picked ("Find ideas for Day N" on an empty day, §4.5). */
+  onFindIdeas?: (dayNumber: number) => void
 }
 
 /** One day of the plan: heading, its activities in order, and "+ Add activity" (frontend-spec.md §4.5). */
-export function DayCard({ tripId, day, activities }: DayCardProps) {
+export function DayCard({ tripId, destination, day, activities, onFindIdeas }: DayCardProps) {
   const mutations = useActivityMutations(tripId)
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -39,7 +44,16 @@ export function DayCard({ tripId, day, activities }: DayCardProps) {
         <span className="text-[0.9375rem] text-muted">{formatDayLabel(day.date)}</span>
       </div>
 
-      {items.length === 0 && !adding && <p className="text-muted italic">No activities planned</p>}
+      {items.length === 0 && !adding && (
+        <div className="grid justify-items-start gap-0.5">
+          <p className="text-muted italic">No activities planned</p>
+          {onFindIdeas && (
+            <button type="button" className={`${linkClass} text-[0.9375rem]`} onClick={() => onFindIdeas(day.dayNumber)}>
+              Find ideas for Day {day.dayNumber}
+            </button>
+          )}
+        </div>
+      )}
 
       {items.length > 0 && (
         <ul className="grid">
@@ -69,6 +83,7 @@ export function DayCard({ tripId, day, activities }: DayCardProps) {
               <ActivityItem
                 key={activity.id}
                 activity={activity}
+                destination={destination}
                 onEdit={() => setEditingId(activity.id)}
                 onDelete={() => setDeleting(activity)}
               />
@@ -125,10 +140,12 @@ export function DayCard({ tripId, day, activities }: DayCardProps) {
 
 export function ActivityItem({
   activity,
+  destination,
   onEdit,
   onDelete,
 }: {
   activity: Activity
+  destination: string
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -142,6 +159,7 @@ export function ActivityItem({
         {activity.notes && (
           <span className="text-[0.9375rem] break-words whitespace-pre-line text-muted">{activity.notes}</span>
         )}
+        <MapLink query={`${activity.title}, ${destination}`} label={activity.title} />
       </div>
       <div className="-my-2 flex">
         <button type="button" className={iconButtonClass} aria-label={`Edit ${activity.title}`} onClick={onEdit}>

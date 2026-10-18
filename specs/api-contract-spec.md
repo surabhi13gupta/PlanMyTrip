@@ -1,6 +1,6 @@
 # API Contract Spec — PlanMyTrip
 
-> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-04
+> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-18
 > Version: v1
 > Related: [goal-spec.md](./goal-spec.md), [frontend-spec.md](./frontend-spec.md), [backend-spec.md](./backend-spec.md)
 
@@ -46,9 +46,11 @@ Every error response has this shape:
 | 404 | `NOT_FOUND` | The trip or activity doesn't exist, isn't a valid ID, or belongs to another user | — |
 | 409 | `USERNAME_TAKEN` | Signup with a username that already exists (in any letter case) | `{ "field": "username", "message": "This username is already taken." }` |
 | 409 | `ACTIVITIES_WOULD_BE_DELETED` | A trip update would remove days that have activities, and `confirmDeleteActivities` isn't `true` | `{ "activitiesToDelete": 3, "newDurationDays": 3 }` |
+| 429 | `IDEAS_DAILY_LIMIT` | The user already started 20 new idea searches today (UTC); saved results still work | — |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | A `POST`, `PATCH`, or `DELETE` without `Content-Type: application/json` | — |
 | 500 | `INTERNAL_ERROR` | An unexpected error on the server | — |
 | 503 | `SERVICE_UNAVAILABLE` | The database can't be reached | — |
+| 503 | `IDEAS_UNAVAILABLE` | Ideas can't be fetched: SerpApi failed, timed out, or this month's free searches are used up, or no SerpApi key is set | — |
 
 ## 3. Shared Schemas
 Fields marked `| null` are always present in responses, with the value `null` when empty.
@@ -174,6 +176,7 @@ Other errors that aren't field validation: `USERNAME_TAKEN` (409), `INVALID_CRED
 | POST | `/trips/{tripId}/activities` | Yes | Add an activity to a day | US5 |
 | PATCH | `/trips/{tripId}/activities/{activityId}` | Yes | Change an activity's title, time, or notes | US5 |
 | DELETE | `/trips/{tripId}/activities/{activityId}` | Yes | Delete an activity | US5 |
+| GET | `/trips/{tripId}/ideas?category={id}` | Yes | Google Maps ideas at the trip's destination for one category | US8 |
 | GET | `/health` | No | Check that the API and database are up | — |
 
 All paths are relative to `/api/v1`. There is no PDF endpoint: the PDF is built in the browser from `GET /trips/{tripId}`.
@@ -432,7 +435,53 @@ The updated `Activity`.
 | 401 | `UNAUTHORIZED` | Not logged in |
 | 404 | `NOT_FOUND` | No such trip or activity, the activity isn't in this trip, or the trip belongs to another user |
 
-### 6.13 `GET /health`
+### 6.13 `GET /trips/{tripId}/ideas?category={id}`
+- **Description:** Up to 10 places from Google Maps for one idea category at the trip's destination (e.g. "museums in Paris, France"), for the Ideas panel. Results come from the backend's 30-day cache when possible; otherwise the backend asks SerpApi once and saves the answer.
+- **Auth required:** Yes. The trip must belong to the user (otherwise 404).
+- **Query parameter `category`** (required): one of `top-sights`, `museums`, `parks`, `restaurants`, `cafes`, `walking-tours`, `viewpoints`, `markets`, `romantic-dinner`, `wine-bars`, `kid-friendly`, `zoos-aquariums`, `playgrounds`, `nightlife`, `food-markets`, `group-activities`. Any category works for any trip; the frontend shows the ones for the Trip Type. Anything else is 400 `VALIDATION_ERROR` (`field: "category"`, "Choose an idea category.").
+
+**Success response** — `200 OK`
+```json
+{
+  "category": "museums",
+  "query": "museums in Paris, France",
+  "fetchedAt": "2026-10-18T09:12:00Z",
+  "ideas": [
+    {
+      "id": "ChIJ7YvD6S5u5kcRhX3e0dXUMOc",
+      "name": "Musée d'Orsay",
+      "rating": 4.8,
+      "reviews": 98214,
+      "priceLevel": null,
+      "type": "Art museum",
+      "address": "1 Rue de la Légion d'Honneur, 75007 Paris, France",
+      "thumbnailUrl": "https://lh5.googleusercontent.com/p/AF1Qip…=w120-h120-k-no"
+    }
+  ]
+}
+```
+| Field | Type | Notes |
+|---|---|---|
+| `id` | string | Google's place ID; unique within the list |
+| `name` | string | |
+| `rating` | number \| null | 1.0–5.0 |
+| `reviews` | integer \| null | Number of Google reviews |
+| `priceLevel` | string \| null | As Google shows it, e.g. `"$$"` or `"€10–20"` |
+| `type` | string \| null | e.g. `"Art museum"` |
+| `address` | string \| null | |
+| `thumbnailUrl` | string \| null | An `https` image URL; may stop working, so the frontend shows a placeholder on error |
+
+`ideas` can be empty (nothing found). `fetchedAt` is when SerpApi was asked, so the frontend could show "updated 3 days ago".
+
+**Error responses**
+| Status | Code | Condition |
+|--------|------|-----------|
+| 400 | `VALIDATION_ERROR` | `category` is missing or not in the list |
+| 404 | `NOT_FOUND` | The trip doesn't exist or belongs to another user |
+| 429 | `IDEAS_DAILY_LIMIT` | Not cached, and the user already started 20 new searches today |
+| 503 | `IDEAS_UNAVAILABLE` | Not cached, and SerpApi can't answer (out of searches, down, timed out, no key) |
+
+### 6.14 `GET /health`
 - **Description:** Confirms the API is running and can reach the database. Used to check deployments.
 - **Auth required:** No
 
@@ -452,7 +501,7 @@ The updated `Activity`.
   - **The browser closes.** The cookie has no expiry date, so the browser deletes it.
   - **12 hours without any request** (idle timeout on the server). While the user is active, the server keeps pushing this back, at most once an hour. There is no new `Set-Cookie` when this happens, because the cookie itself has no expiry.
   - **The user clicks Log out.**
-- **Rate limits:** None in the MVP, including on login, beyond Vercel's built-in protection. Limiting repeated failed logins is future work (see [goal-spec.md](./goal-spec.md#8-future-enhancements-post-mvp)); when added, it will use a new `429` error code, which doesn't need a new API version.
+- **Rate limits:** Idea searches: at most **20 new (uncached) searches per user per day**, UTC (`429 IDEAS_DAILY_LIMIT`), so one user can't use up the month's 250 free SerpApi searches. Otherwise none in the MVP, including on login, beyond Vercel's built-in protection. Limiting repeated failed logins is future work (see [goal-spec.md](./goal-spec.md#8-future-enhancements-post-mvp)); when added, it will use a new `429` error code, which doesn't need a new API version.
 
 ## 8. Open Questions
 - None right now.
@@ -470,3 +519,4 @@ The updated `Activity`.
 |------|---------|--------|
 | 2026-10-04 | v1 | Initial contract: auth, trips, activities, health |
 | 2026-10-05 | v1 | Signup accepts an optional `name`; `User` includes `name` (string or `null`). Kept as v1: the app isn't released yet, and the frontend and backend change together |
+| 2026-10-18 | v1 | New `GET /trips/{tripId}/ideas` (section 6.13) and error codes `IDEAS_DAILY_LIMIT` (429) and `IDEAS_UNAVAILABLE` (503). Adding an endpoint keeps v1 |

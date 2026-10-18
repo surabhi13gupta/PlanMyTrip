@@ -9,10 +9,34 @@ const day = { dayNumber: 2, date: '2026-10-11' }
 
 describe('DayCard', () => {
   it('shows the day heading and date, and the empty state', () => {
-    withQueryClient(<DayCard tripId="trip-1" day={day} activities={[]} />)
+    withQueryClient(<DayCard tripId="trip-1" destination="Paris, France" day={day} activities={[]} />)
     expect(screen.getByRole('heading', { level: 2, name: 'Day 2' })).toBeInTheDocument()
     expect(screen.getByText('Sun, Oct 11')).toBeInTheDocument()
     expect(screen.getByText('No activities planned')).toBeInTheDocument()
+  })
+
+  it('offers "Find ideas for Day N" on an empty day', async () => {
+    const onFindIdeas = vi.fn()
+    withQueryClient(
+      <DayCard tripId="trip-1" destination="Paris, France" day={day} activities={[]} onFindIdeas={onFindIdeas} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Find ideas for Day 2' }))
+    expect(onFindIdeas).toHaveBeenCalledWith(2)
+  })
+
+  it('gives every activity a Map link to Google Maps at the destination, in a new tab', () => {
+    withQueryClient(
+      <DayCard
+        tripId="trip-1"
+        destination="Paris, France"
+        day={day}
+        activities={[makeActivity({ dayNumber: 2, title: "Musée d'Orsay" })]}
+      />,
+    )
+    const link = screen.getByRole('link', { name: "Open Musée d'Orsay on Google Maps (opens in a new tab)" })
+    expect(new URL(link.getAttribute('href')!).searchParams.get('query')).toBe("Musée d'Orsay, Paris, France")
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
 
   it("lists only this day's activities, timed first, then untimed in order added", () => {
@@ -22,7 +46,7 @@ describe('DayCard', () => {
       makeActivity({ dayNumber: 1, title: 'Arrive' }),
       makeActivity({ dayNumber: 2, title: 'Louvre', time: '09:00', notes: 'Denon wing' }),
     ]
-    withQueryClient(<DayCard tripId="trip-1" day={day} activities={activities} />)
+    withQueryClient(<DayCard tripId="trip-1" destination="Paris, France" day={day} activities={activities} />)
     const items = within(screen.getByRole('list')).getAllByRole('listitem')
     expect(items.map((li) => li.textContent)).toEqual([
       expect.stringContaining('Louvre'),
@@ -43,7 +67,7 @@ describe('DayCard', () => {
       http.get(`${API}/trips/trip-1`, () => HttpResponse.json({})),
     )
     const user = userEvent.setup()
-    withQueryClient(<DayCard tripId="trip-1" day={day} activities={[]} />)
+    withQueryClient(<DayCard tripId="trip-1" destination="Paris, France" day={day} activities={[]} />)
     await user.click(screen.getByRole('button', { name: '+ Add activity' }))
     await user.type(screen.getByLabelText('Title'), 'Louvre')
     await user.type(screen.getByLabelText('Time (optional)'), '09:00')
@@ -53,7 +77,7 @@ describe('DayCard', () => {
 
   it('registers a valid unsaved form so it is saved if the page closes', async () => {
     const user = userEvent.setup()
-    withQueryClient(<DayCard tripId="trip-1" day={day} activities={[]} />)
+    withQueryClient(<DayCard tripId="trip-1" destination="Paris, France" day={day} activities={[]} />)
     await user.click(screen.getByRole('button', { name: '+ Add activity' }))
     expect(collectPendingSaves()).toEqual([]) // nothing typed yet
     await user.type(screen.getByLabelText('Title'), 'Dinner cruise')

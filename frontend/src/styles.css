@@ -17,6 +17,12 @@
   --color-line: #e5d9c8;
   --color-field-border: #8c7b66;
   --color-danger: #b91c1c;
+  /* Ideas panel: the "Added" state, the out-of-searches notice, and rating stars. */
+  --color-success: #166534;
+  --color-success-soft: #dcfce7;
+  --color-warn-ink: #78350f;
+  --color-warn-soft: #fef3c7;
+  --color-star: #b45309;
 
   --font-sans: 'Fira Sans', system-ui, sans-serif;
   --font-script: 'Dancing Script', cursive;

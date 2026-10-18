@@ -332,6 +332,7 @@ dependencies = [
     { name = "alembic" },
     { name = "argon2-cffi" },
     { name = "fastapi" },
+    { name = "httpx2" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic-settings" },
     { name = "sqlalchemy" },
@@ -339,7 +340,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx2" },
     { name = "pytest" },
     { name = "ruff" },
     { name = "uvicorn", extra = ["standard"] },
@@ -350,6 +350,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.20.0" },
     { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "fastapi", specifier = ">=0.142.2" },
+    { name = "httpx2", specifier = ">=2.13.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.6" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "sqlalchemy", specifier = ">=2" },
@@ -357,7 +358,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx2", specifier = ">=2.13.1" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "ruff", specifier = ">=0.16.10" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.54.0" },

@@ -1,9 +1,10 @@
-import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import { Document, Font, Link, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import fira400 from '@fontsource/fira-sans/files/fira-sans-latin-400-normal.woff?url'
 import fira500 from '@fontsource/fira-sans/files/fira-sans-latin-500-normal.woff?url'
 import fira600 from '@fontsource/fira-sans/files/fira-sans-latin-600-normal.woff?url'
 import { activitiesForDay } from '../lib/activities'
 import { formatDateRange, formatDayLabel, formatDuration, getTripDays } from '../lib/dates'
+import { mapsSearchUrl } from '../lib/maps'
 import { TRIP_TYPES, type TripDetail } from '../types'
 
 // The PDF uses the app's font and dark blue (frontend-spec.md §2). react-pdf can't read the
@@ -54,6 +55,7 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   activityTitle: { fontWeight: 500 },
   notes: { color: color.muted, fontSize: 10, marginTop: 1 },
+  mapLink: { color: color.primary, fontSize: 9, marginTop: 1, textDecoration: 'underline' },
   empty: { color: color.muted, fontStyle: 'italic', paddingVertical: 4 },
   footer: { position: 'absolute', bottom: 24, left: 40, right: 40, fontSize: 8, color: color.muted, textAlign: 'right' },
 })
@@ -90,6 +92,9 @@ export function ItineraryPdf({ trip }: { trip: TripDetail }) {
                     <View style={styles.body}>
                       <Text style={styles.activityTitle}>{activity.title}</Text>
                       {activity.notes ? <Text style={styles.notes}>{activity.notes}</Text> : null}
+                      <Link style={styles.mapLink} src={mapsSearchUrl(`${activity.title}, ${trip.destination}`)}>
+                        Map
+                      </Link>
                     </View>
                   </View>
                 ))
