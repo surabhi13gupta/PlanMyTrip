@@ -16,6 +16,7 @@ const NewTripPage = lazy(() => import('./pages/NewTripPage'))
 const TripPage = lazy(() => import('./pages/TripPage'))
 const EditTripPage = lazy(() => import('./pages/EditTripPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const AboutPage = lazy(() => import('./pages/AboutPage'))
 
 /** Waits for the startup session check, and saves open forms if the page closes. */
 function AppShell() {
@@ -53,6 +54,8 @@ export const routes: RouteObject[] = [
           { path: ':tripId/edit', element: <EditTripPage /> },
         ],
       },
+      // Open to everyone, logged in or not (US10).
+      { path: 'about', element: <AboutPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

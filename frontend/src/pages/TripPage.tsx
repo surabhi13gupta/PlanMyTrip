@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { ApiError } from '../api/client'
+import { BackLink } from '../components/BackLink'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DayCard } from '../components/DayCard'
 import { DayNav } from '../components/DayNav'
@@ -56,6 +57,9 @@ function TripPlan({ trip }: { trip: TripDetail }) {
       }
     >
       <div className="grid min-w-0 gap-5">
+        <div className="-mb-3">
+          <BackLink to="/trips">My Trips</BackLink>
+        </div>
         <header className={`${cardClass} grid gap-3 p-5`}>
           <div className="flex items-start justify-between gap-3">
             <h1 className="min-w-0 text-2xl font-semibold break-words text-primary">{trip.destination}</h1>

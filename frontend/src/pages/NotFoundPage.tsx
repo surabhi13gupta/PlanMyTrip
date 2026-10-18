@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { SiteBanner } from '../components/SiteBanner'
+import { SiteFooter } from '../components/SiteFooter'
 import { cardClass, linkClass } from '../components/ui'
 
 /** Shown for unknown addresses, and for trips that don't exist or aren't the user's. */
@@ -21,6 +22,7 @@ export default function NotFoundPage() {
       <SiteBanner />
       <main className="mx-auto max-w-5xl px-4 py-10 md:px-6">
         <NotFoundContent />
+        <SiteFooter />
       </main>
     </div>
   )

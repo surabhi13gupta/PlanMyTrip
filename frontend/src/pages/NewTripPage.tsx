@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
+import { BackLink } from '../components/BackLink'
 import { TripForm } from '../components/TripForm'
 import { useCreateTrip } from '../hooks/useTrips'
 
@@ -13,7 +14,10 @@ export default function NewTripPage() {
 
   return (
     <div className="grid gap-6">
-      <h1 className="text-2xl font-semibold text-primary">Plan a new trip</h1>
+      <div className="grid gap-2">
+        <BackLink to="/trips">My Trips</BackLink>
+        <h1 className="text-2xl font-semibold text-primary">Plan a new trip</h1>
+      </div>
       <TripForm
         submitLabel="Plan"
         onCancel={() => navigate('/trips')}
