@@ -53,3 +53,20 @@ export function Spinner({ label }: { label?: string }) {
     </span>
   )
 }
+
+export function PinIcon() {
+  return (
+    <svg {...common} width={16} height={16} strokeLinejoin="round">
+      <path d="M10 18s6-5.3 6-10a6 6 0 1 0-12 0c0 4.7 6 10 6 10Z" />
+      <circle cx="10" cy="8" r="2.2" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function ExternalLinkIcon() {
+  return (
+    <svg {...common} width={12} height={12} viewBox="0 0 12 12" strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.5 2H2v8h8V7.5M7 1.5h3.5V5M10.5 1.5 5.5 6.5" />
+    </svg>
+  )
+}

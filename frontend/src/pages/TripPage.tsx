@@ -8,6 +8,7 @@ import { DayNav } from '../components/DayNav'
 import { PrintButton } from '../components/PrintButton'
 import { ErrorState, Skeleton } from '../components/States'
 import { TripTypeBadge } from '../components/TripCard'
+import { TripIdeas } from '../components/TripIdeas'
 import { buttonClass, cardClass, linkClass } from '../components/ui'
 import { useDeleteTrip, useTrip } from '../hooks/useTrips'
 import { formatDuration, formatFromTo, formatShortDate, getTripDays } from '../lib/dates'
@@ -15,7 +16,7 @@ import { errorMessage, toastError } from '../lib/errors'
 import type { TripDetail } from '../types'
 import { NotFoundContent } from './NotFoundPage'
 
-/** The trip's day-by-day plan with Print, Delete, and Edit (US5–US7; mockup "Saved trip"). */
+/** The trip's day-by-day plan with Print, Delete, Edit, and Google Maps ideas (US5–US9; mockup "Saved trip"). */
 export default function TripPage() {
   const { tripId = '' } = useParams()
   const trip = useTrip(tripId)
@@ -53,8 +54,16 @@ function TripPlan({ trip }: { trip: TripDetail }) {
 
       <DayNav days={days} />
 
+      <TripIdeas destination={trip.destination} tripType={trip.tripType} />
+
       {days.map((day) => (
-        <DayCard key={day.dayNumber} tripId={trip.id} day={day} activities={trip.activities} />
+        <DayCard
+          key={day.dayNumber}
+          tripId={trip.id}
+          destination={trip.destination}
+          day={day}
+          activities={trip.activities}
+        />
       ))}
 
       {/* Sticks to the bottom on mobile so Print and Delete are always reachable (§4.5). */}
