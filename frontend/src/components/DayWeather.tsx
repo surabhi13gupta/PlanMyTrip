@@ -1,7 +1,7 @@
-import { isBeyondForecast, weatherLabel, type DayForecast } from '../lib/weather'
+import { isBeyondForecast, temperatureUnit, weatherLabel, type DayForecast } from '../lib/weather'
 
 /**
- * A day's forecast in its heading row: "☀️ 24° / 15° 💧 40%", or "Forecast closer to the date"
+ * A day's forecast in its heading row: "☀️ High 24°C · Low 15°C 💧 40%", or "Forecast closer to the date"
  * for days too far ahead (frontend-spec.md §4.5.3). Nothing for past days or when there's no data.
  */
 export function DayWeather({ date, forecast }: { date: string; forecast?: DayForecast }) {
@@ -11,11 +11,13 @@ export function DayWeather({ date, forecast }: { date: string; forecast?: DayFor
     ) : null
   }
   const { icon, label } = weatherLabel(forecast.code)
-  const high = Math.round(forecast.high)
-  const low = Math.round(forecast.low)
+  // Same rule the forecast was fetched with, so the unit always matches the numbers.
+  const unit = temperatureUnit() === 'fahrenheit' ? '°F' : '°C'
+  const high = `${Math.round(forecast.high)}${unit}`
+  const low = `${Math.round(forecast.low)}${unit}`
   const rain = forecast.rainChance !== null && forecast.rainChance >= 30 ? forecast.rainChance : null
   const spoken =
-    `Forecast: ${label.toLowerCase()}, high ${high}°, low ${low}°` +
+    `Forecast: ${label.toLowerCase()}, high ${high}, low ${low}` +
     (rain !== null ? `, ${rain}% chance of rain` : '')
 
   return (
@@ -24,8 +26,9 @@ export function DayWeather({ date, forecast }: { date: string; forecast?: DayFor
       <span aria-hidden="true" className="inline-flex items-center gap-1.5">
         <span className="text-base leading-none">{icon}</span>
         <span>
-          <span className="font-medium text-ink">{high}°</span>
-          <span className="text-muted"> / {low}°</span>
+          <span className="text-xs text-muted">High</span> <span className="font-medium text-ink">{high}</span>
+          <span className="text-muted"> · </span>
+          <span className="text-xs text-muted">Low</span> <span className="font-medium text-ink">{low}</span>
         </span>
         {rain !== null && <span className="text-primary">💧 {rain}%</span>}
       </span>
