@@ -1,6 +1,6 @@
 # Frontend Spec — PlanMyTrip
 
-> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-04
+> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-18
 > Related: [goal-spec.md](./goal-spec.md), [api-contract-spec.md](./api-contract-spec.md)
 
 ## 1. Overview
@@ -85,13 +85,14 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 
 ### 4.5 Trip Page (Day-by-Day Plan)
 - **Route:** `/trips/:tripId`
-- **Purpose:** Plan activities for each day (US5), print the itinerary (US6), and edit or delete the trip (US7). This one page covers both the "Day 1 … Day N" and the "Saved trip" sketches.
+- **Purpose:** Plan activities for each day (US5), print the itinerary (US6), edit or delete the trip (US7), find ideas on Google Maps (US8), and open activities on a map (US9). This one page covers both the "Day 1 … Day N" and the "Saved trip" sketches.
 - **Layout / sections** (follows the "Saved trip" sketch):
   1. **Trip header:** the destination as the page title, "From Oct 10 → To Oct 14, 2026 · 5 days" below it, the Trip Type badge, and a small **"Edit"** link that opens `/trips/:tripId/edit`.
   2. **Day chips:** a strip of chips ("Day 1 · Oct 10", …) that scrolls sideways on mobile. Clicking a chip scrolls to that day.
-  3. **Days:** a `DayCard` for each day, from Day 1 to Day N, stacked vertically. Each card lists its activities and has an "+ Add activity" button.
-  4. **Action bar** at the bottom: **"Print"** (main button) and **"Delete"** (danger button). On mobile, the bar sticks to the bottom of the screen, so both are always reachable even on a 14-day trip.
-- **Components used:** `AppLayout`, `TripHeader`, `DayNav`, `DayCard`, `ActivityItem`, `ActivityForm`, `TripActions`, `ConfirmDialog`, `PrintButton`
+  3. **Ideas (`TripIdeas`, section 4.5.1):** "Ideas for Paris, France" with idea chips that open Google Maps.
+  4. **Days:** a `DayCard` for each day, from Day 1 to Day N, stacked vertically. Each card lists its activities and has an "+ Add activity" button.
+  5. **Action bar** at the bottom: **"Print"** (main button) and **"Delete"** (danger button). On mobile, the bar sticks to the bottom of the screen, so both are always reachable even on a 14-day trip.
+- **Components used:** `AppLayout`, `TripHeader`, `DayNav`, `TripIdeas`, `DayCard`, `ActivityItem`, `MapLink`, `ActivityForm`, `TripActions`, `ConfirmDialog`, `PrintButton`
 - **Data needed (API calls):** `GET /trips/:tripId` (the trip with its activities), `POST /trips/:tripId/activities`, `PATCH /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId/activities/:activityId`, `DELETE /trips/:tripId`
 - **User interactions:**
   - **Add:** "+ Add activity" opens an `ActivityForm` inside that day's card (title, optional time, optional notes). Save or Cancel.
@@ -102,7 +103,31 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
   - **Sort:** Within a day, activities with a time appear first, in time order. Activities without a time follow, in the order they were created (the `sortActivities` helper).
   - **Days:** The list of days is worked out from the trip's start and end dates (the `getTripDays` helper). The user never creates or deletes days.
   - **Day numbers:** Each activity belongs to a day number (Day 1, Day 2, …), not to a calendar date. If the trip's dates move, the activities move with them; e.g. Day 2's activities follow Day 2 to its new date.
-- **Loading / empty / error states:** A skeleton header and cards while loading. A day with no activities shows "No activities planned" in muted text. If saving fails, a toast appears and the form stays open with what the user typed. A trip that isn't found shows the Not Found page.
+  - **Map link:** Each activity shows a small "Map" link (pin icon + "Map") under its title and notes (section 4.5.2).
+- **Loading / empty / error states:** A skeleton header and cards while loading. A day with no activities shows "No activities planned" in muted text, followed by "Need ideas? See *Ideas for Paris* above." (a link that scrolls to the Ideas section). If saving fails, a toast appears and the form stays open with what the user typed. A trip that isn't found shows the Not Found page.
+
+#### 4.5.1 Ideas on Google Maps (US8)
+- **Where:** a section between the day chips and Day 1, titled "Ideas for <destination>" with the hint "Opens Google Maps in a new tab". It has `id="ideas"` so links can scroll to it.
+- **Chips:** five for every trip, then three chosen by the Trip Type (the `ideasForTripType` helper in `lib/ideas.ts`). Each chip has a small icon and a label; the search words are what's sent to Google Maps.
+
+  | Shown for | Chip label → search words |
+  |---|---|
+  | Every trip | Top sights → "top attractions" · Museums → "museums" · Parks → "parks and gardens" · Restaurants → "restaurants" · Cafés → "cafes" |
+  | Solo | Walking tours → "walking tours" · Viewpoints → "viewpoints" · Markets → "markets" |
+  | Couple | Romantic dinner → "romantic restaurants" · Viewpoints → "viewpoints" · Wine bars → "wine bars" |
+  | Family | Kid-friendly → "kid friendly activities" · Zoos & aquariums → "zoo aquarium" · Playgrounds → "playgrounds" |
+  | Friends | Nightlife → "nightlife" · Food markets → "food markets" · Group activities → "group activities" |
+
+- **Link:** `https://www.google.com/maps/search/?api=1&query=<search words> in <destination>`, built by `mapsSearchUrl(query)` in `lib/maps.ts`, which URL-encodes the text (`encodeURIComponent`). These are Google's documented [Maps URLs](https://developers.google.com/maps/documentation/urls/get-started): no API key, no account, no cost. On phones with the Google Maps app installed, the link opens the app.
+- **Opening:** chips are real `<a>` links with `target="_blank"` and `rel="noopener noreferrer"`, styled as chips. Their accessible name says where they go: "Museums in Paris, France, on Google Maps (opens in a new tab)".
+- **Layout:** the chips wrap onto several lines (they don't scroll sideways like the day chips), so every idea is visible on a phone.
+- **Nothing is added automatically.** The traveler looks around Google Maps and adds what they like with "+ Add activity".
+
+#### 4.5.2 Map links on activities (US9)
+- **What:** each `ActivityItem` shows a small "Map" link (pin icon + the word "Map") under its title and notes, so the edit and delete icons keep their place and phones keep room for the title. It opens `mapsSearchUrl("<activity title>, <destination>")`, e.g. "Visit the Louvre, Paris, France", in a new tab, with the same `target`/`rel` as the chips.
+- **Accessible name:** "Open Visit the Louvre on Google Maps (opens in a new tab)".
+- **Search quality:** the search uses the title as typed, so "Lunch" finds lunch places nearby while "Musée d'Orsay" finds the museum. An address field for exact results is future work (goal spec section 8).
+- **In the PDF:** each activity in `ItineraryPdf` ends with a small "Map" link (react-pdf's `Link`) with the same address, clickable in PDF viewers. Printed on paper it's just the word "Map", so it stays short.
 
 ### 4.6 Edit Trip
 - **Route:** `/trips/:tripId/edit`
@@ -136,8 +161,10 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `TripCard` | One trip in the list: destination, dates, Trip Type | `trip` | My Trips |
 | `TripHeader` | Destination, dates, Trip Type badge, and Edit link | `trip` | Trip Page |
 | `DayNav` | Horizontal day chips that scroll to a day | `days` | Trip Page |
+| `TripIdeas` | "Ideas for <destination>": idea chips that open Google Maps searches (section 4.5.1) | `destination`, `tripType` | Trip Page |
+| `MapLink` | A "Map" link that opens a Google Maps search in a new tab (section 4.5.2) | `query`, `label` | `ActivityItem` |
 | `DayCard` | One day: heading, sorted activities, add button | `day`, `activities`, `tripId` | Trip Page |
-| `ActivityItem` | Shows one activity with edit/delete icons | `activity`, `onEdit`, `onDelete` | `DayCard` |
+| `ActivityItem` | Shows one activity with its Map link and edit/delete icons | `activity`, `destination`, `onEdit`, `onDelete` | `DayCard` |
 | `ActivityForm` | Inline add/edit form for an activity | `defaultValues?`, `onSubmit`, `onCancel` | `DayCard` |
 | `TripActions` | Bottom action bar with Print and Delete (sticky on mobile) | `trip`, `activities`, `onDelete` | Trip Page |
 | `ConfirmDialog` | Accessible confirmation dialog (native `<dialog>`) | `open`, `title`, `message`, `confirmLabel`, `onConfirm`, `onCancel`, `destructive?` | Trip Page, Edit Trip |
@@ -293,8 +320,8 @@ Every page starts with the same banner: a mountain photo across the top, with th
 - **Targets:** Initial JavaScript ≤ 200 KB gzipped (not counting the PDF library). LCP < 2.5s on simulated 4G.
 
 ## 14. Testing Strategy
-- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
-- **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day), the Edit Trip warning dialog, and `ProtectedRoute` redirects. API calls are mocked with MSW.
+- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), `mapsSearchUrl` (encodes spaces, commas, `&`, accents), `ideasForTripType` (five common chips + three per type), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
+- **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day, Map links with the right address and `target`/`rel`), `TripIdeas` (chips for each Trip Type, link addresses), the Edit Trip warning dialog, and `ProtectedRoute` redirects. API calls are mocked with MSW.
 - **End-to-end — future scope (parked):** The Playwright tests are written but commented out in `e2e/planmytrip.spec.ts`, and the `npm run e2e` script is removed, because Chromium's system libraries aren't installed on this machine. To bring them back: run `sudo npx playwright install-deps chromium`, uncomment the file, and restore the script. Until then, the flows below are checked by hand in the browser. What they cover: one test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px. A second test: refresh keeps the user logged in; closing the page with an unsaved activity, then reopening, asks for login and shows the activity saved.
 
 ## 15. Project Structure
@@ -324,6 +351,8 @@ frontend/                 # vercel.json lives at the repository root (see backen
     lib/
       dates.ts
       activities.ts       # sortActivities, countActivitiesBeyondDay
+      maps.ts             # mapsSearchUrl: Google Maps search links (no API key)
+      ideas.ts            # ideasForTripType: the idea chips per Trip Type
       schemas.ts          # Zod schemas
     types/
       index.ts            # User, Trip, Activity, TripType (match API shapes)
@@ -348,6 +377,9 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 ### Resolved
 | Question | Decision |
 |----------|----------|
+| How does the app suggest activities without costs? | **Idea chips that link out to Google Maps**, five common plus three per Trip Type, and a **Map link on every activity** (sections 4.5.1–4.5.2). No API key or AI |
+| Where do the idea chips go? | **One section per trip**, between the day chips and Day 1, since ideas don't depend on the day. Empty days link to it |
+| Map links in the PDF too? | **Yes:** a small clickable "Map" on each activity |
 | Banner photo: the 700×350 `mountains.jpg`, or a larger one? | First the Seiser Alm photo (Unsplash); then **Mount Fuji with the Chureito Pagoda by Tomáš Malík (Pexels)**, 1920×973, chosen from four candidates (section 10.1) |
 | Banner height? | Taller: 260 / 340 / 420px on phones / tablets / laptops (section 10.1) |
 | Name or username in the banner? | **Full name** ("Surabhi Gupta"), or the username if there's no name; shortened with "…" if long (section 10.1) |
