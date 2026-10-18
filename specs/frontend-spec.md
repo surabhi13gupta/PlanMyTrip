@@ -34,6 +34,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `/trips/new` | New Trip | Yes | "Plan a new trip" form | US3 |
 | `/trips/:tripId` | Trip Page | Yes | A trip's days and activities, plus Print, Delete, and Edit | US5, US6, US7 |
 | `/trips/:tripId/edit` | Edit Trip | Yes | Change the trip's dates, destination, or Trip Type | US7 |
+| `/about` | About | No (works logged in or out) | What PlanMyTrip does, in a few lines | US10 |
 | `*` | Not Found | No | 404 page with a link back to My Trips | — |
 
 **Route rules**
@@ -77,7 +78,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ### 4.4 New Trip
 - **Route:** `/trips/new`
 - **Purpose:** Create a trip (US3).
-- **Layout / sections** (follows the "New trip screen" sketch): The title **"Plan a new trip"**, then `TripForm` with fields in this order: **From** (start date), **To** (end date), **Destination**, **Trip Type**. The submit button is labelled **"Plan"**. The form is one column, at most about 640px wide.
+- **Layout / sections** (follows the "New trip screen" sketch): A **"← My Trips"** back link (section 4.9), then the title **"Plan a new trip"**, then `TripForm` with fields in this order: **From** (start date), **To** (end date), **Destination**, **Trip Type**. The submit button is labelled **"Plan"**. The form is one column, at most about 640px wide.
 - **Components used:** `AppLayout`, `TripForm`
 - **Data needed (API calls):** `POST /trips`
 - **User interactions:** Pick the dates, type the destination, and choose a Trip Type (four buttons: Solo, Couple, Family, Friends). The date pickers don't offer dates before today. The form shows the trip length as you pick dates, e.g. "5 days". Clicking "Plan" creates the trip and opens its page, showing Day 1 through Day N ready for activities. "Cancel" goes back to `/trips`.
@@ -87,6 +88,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Route:** `/trips/:tripId`
 - **Purpose:** Plan activities for each day (US5), print the itinerary (US6), edit or delete the trip (US7), browse ideas and add them to days (US8), and open activities on a map (US9). This one page covers both the "Day 1 … Day N" and the "Saved trip" sketches.
 - **Layout / sections** (follows the "Saved trip" sketch):
+  0. **Back link:** "← My Trips" above the trip header (section 4.9).
   1. **Trip header:** the destination as the page title, "From Oct 10 → To Oct 14, 2026 · 5 days" below it, the Trip Type badge, a small **"Edit"** link that opens `/trips/:tripId/edit`, and an **"Ideas for <destination>"** button (secondary style, lightbulb icon) that opens the Ideas panel (section 4.5.1).
   2. **Day chips:** a strip of chips ("Day 1 · Oct 10", …) that scrolls sideways on mobile. Clicking a chip scrolls to that day.
   3. **Days:** a `DayCard` for each day, from Day 1 to Day N, stacked vertically. Each card lists its activities and has an "+ Add activity" button.
@@ -149,7 +151,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ### 4.6 Edit Trip
 - **Route:** `/trips/:tripId/edit`
 - **Purpose:** Change a trip's dates, destination, or Trip Type (US7).
-- **Layout / sections:** The title "Edit trip", then the same `TripForm` as New Trip, filled in with the trip's details. The submit button is labelled "Save". (Deleting a trip is on the Trip Page, not here.)
+- **Layout / sections:** A **"← Back to trip"** link (section 4.9; it leaves without saving, like Cancel), then the title "Edit trip", then the same `TripForm` as New Trip, filled in with the trip's details. The submit button is labelled "Save". (Deleting a trip is on the Trip Page, not here.)
 - **Components used:** `AppLayout`, `TripForm`, `ConfirmDialog`
 - **Data needed (API calls):** `GET /trips/:tripId`, `PATCH /trips/:tripId`
 - **User interactions:**
@@ -162,11 +164,45 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Purpose:** Handle unknown or inaccessible URLs.
 - **Layout / sections:** The mountain banner, then a "Page not found" message with a link to My Trips.
 
+### 4.8 About (US10)
+- **Route:** `/about`. Public: logged-in and logged-out visitors both see it. Logged in, the banner shows the name and Log out as usual.
+- **Opened from:** the **"About PlanMyTrip"** link in the `SiteFooter` at the bottom of every page (logged-in pages, Signup, Login, Not Found, and About itself).
+- **Layout:** `SiteBanner`, then one column about 640px wide: the "← Back" link (section 4.9), the heading **"About PlanMyTrip"**, and these short sections:
+  - **Intro:** "PlanMyTrip helps you plan a trip one day at a time, then take the plan with you as a PDF."
+  - **"What you can do"**, a short list:
+    - Plan a trip of up to 14 days: solo, as a couple, with family, or with friends.
+    - Add activities to each day, with an optional time and notes.
+    - Find ideas for your destination (top sights, museums, restaurants and more) and add them to any day.
+    - Open any activity on Google Maps for directions.
+    - Download the whole itinerary as a PDF to print or keep on your phone.
+  - **"Good to know"**, a short list:
+    - Your trips are private to your account.
+    - PlanMyTrip is free, with no ads.
+    - Ideas come from Google Maps, via SerpApi.
+  - **Call to action:** "Create a free account" (primary button, to `/signup`) when logged out; "Go to My Trips" (to `/trips`) when logged in.
+- **Data needed:** none (the text is part of the app). **Components used:** `SiteBanner`, `BackLink`, `SiteFooter`.
+
+### 4.9 Back links (US11)
+- **What:** a `BackLink` at the **top left of the page content**, above the page heading, on every page below My Trips. Same place and style everywhere: a left arrow and a short label, primary color, medium weight, at least 44px tall, with the arrow moving left slightly on hover.
+
+  | Page | Label | Goes to |
+  |---|---|---|
+  | New Trip | ← My Trips | `/trips` |
+  | Trip Page | ← My Trips | `/trips` |
+  | Edit Trip | ← Back to trip | `/trips/:tripId` (without saving, like Cancel) |
+  | About | ← Back | The previous page in the app (browser history); `/` if About was opened directly (e.g. from a bookmark) |
+
+- **Why fixed destinations:** on trip pages the link always goes to the same, named place, so it does what its label says even after a refresh or when the page was opened from a link. Only About, which can be reached from anywhere, uses history.
+- My Trips, Signup and Login have no back link (they're the starting points); Not Found already has "Go to My Trips".
+- It's a real link (`<a>`), except About's "← Back" when it uses history, which is a button.
+
 ## 5. Component Inventory
 | Component | Responsibility | Props | Used In |
 |-----------|----------------|-------|---------|
 | `AppLayout` | Page frame: `SiteBanner` (with the user's name and Log out on the right) above the content area | `children` | All logged-in pages |
 | `AuthLayout` | `SiteBanner`, then a centered column (no card) with the page heading and form | `title`, `children` | Signup, Login |
+| `BackLink` | "← My Trips" / "← Back to trip" / "← Back" at the top left of inner pages (section 4.9) | `to?` (omit to go back in history), `children` (label) | New Trip, Trip Page, Edit Trip, About |
+| `SiteFooter` | Small footer with the "About PlanMyTrip" link (section 4.8) | — | `AppLayout`, `AuthLayout`, Not Found, About |
 | `SiteBanner` | The mountain image across the top of every page, with the logo top left and optional content top right (section 10.1) | `children?` (right side) | `AppLayout`, `AuthLayout`, Not Found |
 | `Logo` | The PlanMyTrip logo: map-pin mark + `Wordmark`, as inline SVG; links home | `variant` (`onImage` / `onLight`) | `SiteBanner` |
 | `Wordmark` | "Plan*My*Trip" with the handwritten "My"; inherits size and color from where it's placed | — | `Logo`, the My Trips welcome heading |
@@ -339,7 +375,7 @@ Every page starts with the same banner: a mountain photo across the top, with th
 
 ## 14. Testing Strategy
 - **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), `mapsSearchUrl` (encodes spaces, commas, `&`, accents), `ideasForTripType` (five common categories + three per type), `ideaToActivity` (title and notes cut to their limits), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
-- **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day, Map links with the right address and `target`/`rel`), `IdeasPanel` (tabs per Trip Type, fetching a category on first open, Add to the picked day calls the activities API, the Added state, empty and error states with the Google Maps fallback), the Edit Trip warning dialog, and `ProtectedRoute` redirects. API calls are mocked with MSW.
+- **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day, Map links with the right address and `target`/`rel`), `IdeasPanel` (tabs per Trip Type, fetching a category on first open, Add to the picked day calls the activities API, the Added state, empty and error states with the Google Maps fallback), the Edit Trip warning dialog, `ProtectedRoute` redirects, `BackLink` (fixed link, or history back with a fallback to `/`), and the About page (logged-out and logged-in call to action; reachable without logging in). API calls are mocked with MSW.
 - **End-to-end — future scope (parked):** The Playwright tests are written but commented out in `e2e/planmytrip.spec.ts`, and the `npm run e2e` script is removed, because Chromium's system libraries aren't installed on this machine. To bring them back: run `sudo npx playwright install-deps chromium`, uncomment the file, and restore the script. Until then, the flows below are checked by hand in the browser. What they cover: one test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px. A second test: refresh keeps the user logged in; closing the page with an unsaved activity, then reopening, asks for login and shows the activity saved.
 
 ## 15. Project Structure
@@ -361,7 +397,7 @@ frontend/                 # vercel.json lives at the repository root (see backen
       trips.ts            # trips + activities calls
     hooks/                # useAuth, useTrips, useTrip, useActivityMutations
     pages/                # SignupPage, LoginPage, TripsPage, NewTripPage,
-                          # TripPlanPage, EditTripPage, NotFoundPage
+                          # TripPlanPage, EditTripPage, AboutPage, NotFoundPage
     components/           # components from section 5
     pdf/
       ItineraryPdf.tsx

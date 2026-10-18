@@ -45,6 +45,8 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | F7 | Responsive UI | Every screen is usable on desktop and on mobile browsers | P0 |
 | F8 | Ideas panel | "Ideas for <destination>" opens a panel (on the right on laptops and tablets, a sheet on phones) listing Google Maps places by category ("Museums", "Restaurants", …, plus three chosen by Trip Type), each with rating, address, and photo, and an "Add to Day N" button | P1 |
 | F9 | Map links | Each activity has a "Map" link that opens it on Google Maps, on the Trip Page and in the PDF | P1 |
+| F10 | About page | A short "About PlanMyTrip" page saying what the app does, linked from the footer of every page; open to everyone, logged in or not | P2 |
+| F11 | Back links | A "← Back" link at the top of every page below My Trips, so nobody has to click the logo to go back | P1 |
 
 ## 7. User Stories
 <!-- Format: As a <persona>, I want <action> so that <benefit>. -->
@@ -120,6 +122,20 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
     - [ ] The PDF itinerary has the same "Map" link on every activity, clickable when the PDF is opened on a phone or computer
     - [ ] No Google account, API key, or payment is involved
 
+- **US10:** As a visitor, I want a short page explaining what PlanMyTrip does so that I can decide whether to use it.
+  - Acceptance criteria:
+    - [ ] Every page has a small footer with an "About PlanMyTrip" link
+    - [ ] The About page works whether or not you're logged in, and fits on one phone screen or a little more
+    - [ ] It says what the app does in a sentence, lists the main features, notes that trips are private to your account and that the app is free, and says where ideas come from (Google Maps, via SerpApi)
+    - [ ] It ends with "Create a free account" (logged out) or "Go to My Trips" (logged in)
+
+- **US11:** As a traveler, I want a back link on every inner page so that I can return to the previous screen without hunting for the logo.
+  - Acceptance criteria:
+    - [ ] The Trip Page and the New Trip page show "← My Trips", which opens My Trips
+    - [ ] The Edit Trip page shows "← Back to trip", which opens that trip without saving
+    - [ ] The About page shows "← Back", which returns to the page you came from (or to the start page if you opened About directly)
+    - [ ] The link sits at the top left of the page content, in the same place on every page, and is easy to tap on a phone (at least 44px tall)
+
 ## 8. Future Enhancements (Post-MVP)
 - Email-based signup, email verification, and password reset
 - Limiting repeated failed logins (e.g. slowing down or blocking password guessing)
@@ -186,4 +202,6 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | Ideas panel | The panel opened by "Ideas for <destination>" on the Trip Page: Google Maps places by category, each with "Add to Day N". |
 | Idea category | One tab in the Ideas panel (e.g. "Museums"). Five are the same for every trip; three depend on the Trip Type. |
 | Map link | The "Map" link on an activity: opens a Google Maps search for the activity's title at the destination. |
+| About page | `/about`: a short description of what PlanMyTrip does, open to everyone. |
+| Back link | The "← My Trips", "← Back to trip", or "← Back" link at the top left of an inner page. |
 | My Trips | The home screen after login: a welcome, an "Add new trip" button, and the list of the user's trips. |
