@@ -13,7 +13,7 @@ A single place where any traveler can plan a trip day by day and walk away with 
 ## 3. Target Users / Personas
 Any traveler planning a trip, regardless of who they're traveling with: solo, as a couple, with family, or with a group of friends.
 
-In the MVP, one user plans the trip on their own. Who they travel with is stored as the trip's **Trip Type**. It is a label, and it also picks which idea links the Trip Page offers (F8).
+In the MVP, one user plans the trip on their own. Who they travel with is stored as the trip's **Trip Type**. It is a label, and it also picks three of the idea categories in the Ideas panel (F8).
 
 ## 4. Goals
 <!-- Measurable outcomes this product must achieve. -->
@@ -21,15 +21,15 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - G2: A traveler can organize activities by day, from the first day of the trip to the last.
 - G3: A traveler can produce a clean, printable PDF of the itinerary.
 - G4: The app is easy to use on both desktop and mobile browsers.
-- G5: A traveler can find ideas for things to do at their destination, and find each planned place on a map, without the app adding any running costs.
+- G5: A traveler can browse ideas for things to do at their destination inside the app, add any of them to a day, and find each planned place on a map, without the app adding any running costs.
 
 ## 5. Non-Goals (Out of Scope)
 - Pre-filling the day-by-day plan from dropdown choices
-- Suggesting activities inside the app (the Trip Page links out to Google Maps for ideas instead; F8)
+- Adding ideas to the plan automatically (the traveler picks each one; F8)
 - Multiple destinations in one trip
 - Sharing a trip or editing it together with other users
 - Bookings, payments, weather, or a map shown inside the app (activities link out to Google Maps instead; F9)
-- Any paid third-party service or API key (both link features are plain links)
+- Any paid third-party service. The one outside service, SerpApi, is used on its **free plan** only (250 searches a month, no card), with results saved for 30 days to make that last (F8)
 - A native mobile app or offline mode
 - Email verification or password reset
 
@@ -43,7 +43,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | F5 | Print itinerary | A "Print" button downloads the trip's itinerary as a PDF | P0 |
 | F6 | Edit / delete trip | Change a trip's dates, destination, or Trip Type; delete the trip from its page | P1 |
 | F7 | Responsive UI | Every screen is usable on desktop and on mobile browsers | P0 |
-| F8 | Ideas on Google Maps | The Trip Page shows idea chips ("Museums", "Restaurants", …, plus a few chosen by Trip Type) that open Google Maps searching the destination | P1 |
+| F8 | Ideas panel | "Ideas for <destination>" opens a panel (right side on laptops, a sheet on phones) listing Google Maps places by category ("Museums", "Restaurants", …, plus three chosen by Trip Type), each with rating, address, and photo, and an "Add to Day N" button | P1 |
 | F9 | Map links | Each activity has a "Map" link that opens it on Google Maps, on the Trip Page and in the PDF | P1 |
 
 ## 7. User Stories
@@ -105,12 +105,14 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
     - [ ] If the start date is changed, it cannot be earlier than today; a trip that has already started can still be edited if its start date is left alone
     - [ ] If shortening the dates would remove days that have activities, the user sees how many activities will be deleted and must confirm. If they confirm, those activities are deleted. If they cancel, nothing changes.
 
-- **US8:** As a traveler, I want quick links to ideas at my destination so that I can find things to do without leaving to search from scratch.
+- **US8:** As a traveler, I want to browse ideas for my destination and add the ones I like to a day so that I can fill my plan without searching elsewhere.
   - Acceptance criteria:
-    - [ ] The Trip Page has an "Ideas for <destination>" section with chips: Top sights, Museums, Parks, Restaurants, Cafés, plus three chosen by the Trip Type
-    - [ ] Each chip opens Google Maps in a new tab (the Google Maps app on phones) searching e.g. "museums in Paris, France"
-    - [ ] The chips change when the Trip Type changes (e.g. Family shows "Kid-friendly", Friends shows "Nightlife")
-    - [ ] Nothing is added to the plan automatically; the traveler adds what they like with "+ Add activity"
+    - [ ] The Trip Page has an "Ideas for <destination>" button; it opens the Ideas panel (on the right on laptops, as a sheet from the bottom on phones)
+    - [ ] The panel has category tabs: Top sights, Museums, Parks, Restaurants, Cafés, plus three chosen by the Trip Type (e.g. Family adds "Kid-friendly")
+    - [ ] Each idea shows its name, rating and number of reviews, address, a photo when there is one, and a "Map" link
+    - [ ] "Add to Day N" adds the idea as an activity on the chosen day (the name as the title, the address in the notes); any day of the trip can be picked
+    - [ ] Nothing is added to the plan without the traveler clicking Add
+    - [ ] When ideas can't be loaded (e.g. the month's free searches are used up), the panel says so and offers a Google Maps link for that category instead
 
 - **US9:** As a traveler, I want to open any planned activity on a map so that I can see where it is and get directions.
   - Acceptance criteria:
@@ -124,7 +126,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Recording past trips (trips with a start date before today)
 - Multiple destinations in one trip
 - Sharing a trip, or planning it together with other travelers
-- Activity suggestions shown inside the app with one-click add (e.g. from the free OpenTripMap service); today the app links out to Google Maps instead (F8)
+- A paid SerpApi plan, or Google's own Places API, if 250 idea searches a month stop being enough (F8)
 - AI trip assistant (Claude + a Google Places search server): fully designed, then set aside on 2026-10-18 because it has running costs. The design is in git history (commit e2d37a3, `specs/ai-spec.md`) if it's picked up again
 - A map inside the app, weather, and booking links for activities (Google Maps links are covered by F9)
 - An optional address field on activities, for more exact map links
@@ -153,7 +155,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Backend: Python + FastAPI REST JSON API, with Pydantic validation, SQLAlchemy, and Alembic migrations. Users stay logged in with an `httpOnly` session cookie backed by a `sessions` table. Details in [backend-spec.md](./backend-spec.md#2-tech-stack).
 - Database: PostgreSQL, hosted on **Neon**. It stores users, login sessions, trips, and activities.
 - Hosting / Deployment: **Vercel**, one project for both: the React frontend as static files and the FastAPI backend as Vercel Functions, combined with Vercel Services at the same address, deployed automatically on every push to GitHub. Database migrations run automatically during each Vercel build. Preview deployments get their own Neon database branch. Development runs entirely on your own computer. Details in [backend-spec.md](./backend-spec.md#14-deployment).
-- Third-party services (maps, weather, auth, etc.): None in the MVP besides the hosts above (Vercel, Neon). The idea chips and Map links are ordinary links to Google Maps ([Maps URLs](https://developers.google.com/maps/documentation/urls/get-started)): no API key, no account, no cost, and nothing is sent to Google until the traveler clicks. PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
+- Third-party services (maps, weather, auth, etc.): Besides the hosts above (Vercel, Neon), the Ideas panel uses **SerpApi** on its free plan (250 searches a month) to get Google Maps results, called only by the backend and saved for 30 days. Map links are ordinary links to Google Maps ([Maps URLs](https://developers.google.com/maps/documentation/urls/get-started)): no API key and no cost. PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
 
 ## 12. Open Questions
 - None right now.
@@ -164,7 +166,8 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | What happens to activities on days removed when a trip's dates are shortened? | Warn the user with how many activities will be deleted; if they confirm, delete them (US7) |
 | What is the maximum trip length? | 14 days (US3) |
 | Is the PDF generated in the browser or on the server? | In the browser; the backend has no export endpoint (US6) |
-| Can the app suggest activities without running costs? | **Yes, by linking out:** idea chips and Map links open Google Maps searches; no Google API, key, or AI (F8, F9, US8, US9). The AI trip assistant was set aside for its cost (section 8) |
+| Can the app suggest activities without running costs? | **Yes, with SerpApi's free plan:** Google Maps results in an Ideas panel, saved for 30 days so 250 searches a month go a long way; no AI. The AI trip assistant was set aside for its cost (section 8) |
+| Why SerpApi rather than Google directly? | Google's Places API is paid above a free allowance and needs a card; Google's search API is closed to new sign-ups; copying Google's pages ourselves breaks Google's terms. SerpApi's free plan is the simplest way to show Google's results in the app. It is itself a grey area under Google's terms; for a personal, non-commercial app the owner accepted that (2026-10-18) |
 
 ## 13. Glossary
 | Term | Definition |
@@ -173,13 +176,14 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | Account | A user's login, made of a unique username and a password, plus an optional name the app greets them with (by first name; by username if there's no name). |
 | Trip | A planned journey to one destination, with a start date (From), an end date (To), and a Trip Type. A trip has no separate name; it is identified by its destination and dates (e.g. "Paris, France · Oct 10 – Oct 14"). A trip belongs to the user who created it. |
 | Destination | The place a trip is to, entered as free text (e.g. "Paris, France"). There is one destination per trip in the MVP. |
-| Trip Type | Who the user is traveling with: Solo, Couple, Family, or Friends. Besides labelling the trip, it picks three of the idea chips on the Trip Page. |
+| Trip Type | Who the user is traveling with: Solo, Couple, Family, or Friends. Besides labelling the trip, it picks three of the idea categories in the Ideas panel. |
 | Trip Duration | The number of days in a trip, counting both the start and end dates (e.g. Oct 10 to Oct 12 is 3 days). The maximum is 14 days. |
 | Day (Day N) | One calendar date within a trip. Day 1 is the start date and the last day is the end date. Days are worked out from the trip's dates, not created by the user. |
 | Activity | One planned item on a specific day of a trip, such as "Visit the Louvre". It has a title, and optionally a time and notes. It belongs to a day number (e.g. Day 2), not to a calendar date, so it moves with the trip if the dates change. |
 | Day-by-Day Plan | The screen for a trip where the user adds and edits activities for each day. |
 | Itinerary | The full, ordered view of a trip: its details plus every day and that day's activities. This is what gets exported. |
 | Print (PDF Export) | The "Print" button: downloads the itinerary as a PDF file, generated in the browser, that can be printed or kept on a phone. |
-| Idea chips | Buttons in "Ideas for <destination>" on the Trip Page (e.g. "Museums"). Each opens a Google Maps search at the destination. |
+| Ideas panel | The panel opened by "Ideas for <destination>" on the Trip Page: Google Maps places by category, each with "Add to Day N". |
+| Idea category | One tab in the Ideas panel (e.g. "Museums"). Five are the same for every trip; three depend on the Trip Type. |
 | Map link | The "Map" link on an activity: opens a Google Maps search for the activity's title at the destination. |
 | My Trips | The home screen after login: a welcome, an "Add new trip" button, and the list of the user's trips. |
