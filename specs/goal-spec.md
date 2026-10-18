@@ -125,8 +125,8 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - **US10:** As a visitor, I want a short page explaining what PlanMyTrip does so that I can decide whether to use it.
   - Acceptance criteria:
     - [ ] Every page has a small footer with an "About PlanMyTrip" link
-    - [ ] The About page works whether or not you're logged in, and fits on one phone screen or a little more
-    - [ ] It says what the app does in a sentence, lists the main features, notes that trips are private to your account and that the app is free, and says where ideas come from (Google Maps, via SerpApi)
+    - [ ] The About page works whether or not you're logged in, and is short and visual: a one-line headline, four small feature cards, and no paragraphs; it fits on a laptop screen without scrolling
+    - [ ] It shows that the app is free, has no ads, and keeps trips private, and says where ideas come from (Google Maps, via SerpApi)
     - [ ] It ends with "Create a free account" (logged out) or "Go to My Trips" (logged in)
 
 - **US11:** As a traveler, I want a back link on every inner page so that I can return to the previous screen without hunting for the logo.

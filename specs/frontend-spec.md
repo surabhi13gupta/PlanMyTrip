@@ -167,19 +167,21 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 ### 4.8 About (US10)
 - **Route:** `/about`. Public: logged-in and logged-out visitors both see it. Logged in, the banner shows the name and Log out as usual.
 - **Opened from:** the **"About PlanMyTrip"** link in the `SiteFooter` at the bottom of every page (logged-in pages, Signup, Login, Not Found, and About itself).
-- **Layout:** `SiteBanner`, then one column about 640px wide: the "← Back" link (section 4.9), the heading **"About PlanMyTrip"**, and these short sections:
-  - **Intro:** "PlanMyTrip helps you plan a trip one day at a time, then take the plan with you as a PDF."
-  - **"What you can do"**, a short list:
-    - Plan a trip of up to 14 days: solo, as a couple, with family, or with friends.
-    - Add activities to each day, with an optional time and notes.
-    - Find ideas for your destination (top sights, museums, restaurants and more) and add them to any day.
-    - Open any activity on Google Maps for directions.
-    - Download the whole itinerary as a PDF to print or keep on your phone.
-  - **"Good to know"**, a short list:
-    - Your trips are private to your account.
-    - PlanMyTrip is free, with no ads.
-    - Ideas come from Google Maps, via SerpApi.
-  - **Call to action:** "Create a free account" (primary button, to `/signup`) when logged out; "Go to My Trips" (to `/trips`) when logged in.
+- **Layout:** `SiteBanner`, then one column about 640px wide. Short and visual: every line of text is a few words, and the whole page fits on a laptop screen without scrolling (on a phone, about one and a half screens). Revised after review on 2026-10-18: the first version, with two bulleted lists, read as too wordy.
+  1. The "← Back" link (section 4.9).
+  2. **Hero:** a small uppercase label "About PlanMyTrip", the heading **"Plan your trip, one day at a time"**, and one line under it: "Build a day-by-day plan, find things to do, and take it with you."
+  3. **Four feature cards** in a 2×2 grid (two columns on phones too). Each card: an icon in a soft blue circle, a short bold title, and one short line.
+
+     | Icon | Title | Line |
+     |---|---|---|
+     | Calendar | Day by day | Up to 14 days, with times and notes. |
+     | Lightbulb | Ideas built in | Top sights, food and more, added in a tap. |
+     | Map pin | On the map | Open any stop in Google Maps. |
+     | Document | Ready to go | Download your plan as a PDF. |
+
+  4. **Three pills** in a row: "Free", "No ads", "Private to you" (each with a check mark).
+  5. **Call to action:** "Create a free account" (primary button, to `/signup`) when logged out; "Go to My Trips" (to `/trips`) when logged in.
+  6. **Small print** (muted, small): "Ideas come from Google Maps, via SerpApi."
 - **Data needed:** none (the text is part of the app). **Components used:** `SiteBanner`, `BackLink`, `SiteFooter`.
 
 ### 4.9 Back links (US11)
