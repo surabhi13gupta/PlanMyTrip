@@ -140,9 +140,9 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 
 - **US12:** As a traveler, I want to see the weather forecast on each day of my trip so that I can plan outdoor and indoor activities.
   - Acceptance criteria:
-    - [ ] Each day card shows a weather icon, the temperature labelled "High" and "Low" with its unit (°C or °F), and the chance of rain when it's 30% or more, for days from today up to 16 days ahead
+    - [ ] Each day card shows a weather icon, the temperature labelled "High" and "Low" in °C, and the chance of rain when it's 30% or more, for days from today up to 16 days ahead
     - [ ] Days further ahead show "Forecast closer to the date"; days already past show nothing
-    - [ ] Temperatures are in °F for US English browsers and °C everywhere else
+    - [ ] Temperatures are always in °C (Celsius)
     - [ ] If the destination can't be found or the weather service is down, the plan looks as it did before, with no error
     - [ ] No account, key, or payment is needed; the page credits Open-Meteo
 
