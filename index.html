@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="How PlanMyTrip is built end to end: system map, request journeys, components, data model, API, security, testing and interview Q&amp;A.">
+<title>PlanMyTrip Under the Hood</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Fira+Code:wght@400;500&family=Fira+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one reading column (~72rem) — pitch, a clickable system map with request journeys, then layers, data, API, security, testing, and interview Q&A. Uses PlanMyTrip's own navy-and-sand palette and Fira type. */
+:root {
+  --bg: #F4ECE1;
+  --surface: #FFFFFF;
+  --ink: #1E293B;
+  --muted: #6B5E4E;
+  --line: #E5D9C8;
+  --primary: #1E3A5F;
+  --primary-soft: #E3EAF3;
+  --accent: #B45309;
+  --accent-soft: #FEF3C7;
+  --ok: #166534;
+  --font: "Fira Sans", system-ui, sans-serif;
+  --mono: "Fira Code", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --script: "Dancing Script", "Segoe Script", cursive;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1828; --surface: #162238; --ink: #E6EAF0; --muted: #A8B2C1; --line: #2A3A55;
+    --primary: #A7C4EA; --primary-soft: #1F3252; --accent: #F5A524; --accent-soft: #3A2A0E; --ok: #6EE7A0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1828; --surface: #162238; --ink: #E6EAF0; --muted: #A8B2C1; --line: #2A3A55;
+  --primary: #A7C4EA; --primary-soft: #1F3252; --accent: #F5A524; --accent-soft: #3A2A0E; --ok: #6EE7A0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.6; }
+h1, h2, h3, h4 { margin: 0; line-height: 1.2; text-wrap: balance; color: var(--primary); }
+p { margin: 0; }
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+code { background: var(--primary-soft); color: var(--primary); padding: 0.05em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--primary); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+.wrap { max-width: 72rem; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 80px; display: grid; gap: 64px; }
+section { display: grid; gap: 20px; min-width: 0; }
+.eyebrow { font-size: 0.76rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--muted); max-width: 68ch; }
+h2 { font-size: clamp(1.45rem, 2.6vw, 1.85rem); font-weight: 600; }
+h3 { font-size: 1.1rem; font-weight: 600; }
+.sec-head { display: grid; gap: 6px; }
+
+/* Hero */
+.hero { display: grid; gap: 18px; }
+.wordmark { font-size: clamp(2.4rem, 6vw, 3.6rem); font-weight: 600; color: var(--primary); line-height: 1; letter-spacing: -0.01em; }
+.wordmark .my { font-family: var(--script); font-weight: 700; font-size: 1.28em; margin: 0 0.03em; }
+.hero h1 { font-size: clamp(1.2rem, 2.2vw, 1.45rem); font-weight: 500; color: var(--ink); max-width: 46ch; }
+.pitch { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 10px 10px 0; padding: 18px 22px; display: grid; gap: 8px; max-width: 78ch; }
+.pitch .eyebrow { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font-size: 0.82rem; font-weight: 500; padding: 4px 11px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); white-space: nowrap; }
+.chip b { font-weight: 600; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.fact { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.fact b { font-size: 1.5rem; color: var(--primary); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.fact span { color: var(--muted); font-size: 0.85rem; line-height: 1.35; }
+
+/* System map */
+.map-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; overflow: hidden; }
+.diagram { overflow-x: auto; padding: 14px; border-right: 1px solid var(--line); }
+.diagram svg { display: block; min-width: 760px; width: 100%; height: auto; }
+.n rect { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; transition: stroke .2s, fill .2s, opacity .2s; }
+.n.group > rect { fill: var(--primary-soft); stroke: none; }
+.n text { fill: var(--ink); font-family: var(--font); font-size: 13px; }
+.n text.t { font-weight: 600; fill: var(--primary); font-size: 14px; }
+.n text.s { fill: var(--muted); font-size: 11.5px; }
+.n text.k { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.e { fill: none; stroke: var(--muted); stroke-width: 1.5; opacity: .55; transition: stroke .2s, opacity .2s, stroke-width .2s; }
+.e.dash { stroke-dasharray: 5 4; }
+.e-label { fill: var(--muted); font-family: var(--mono); font-size: 10.5px; transition: fill .2s, opacity .2s; }
+.arrow { fill: var(--muted); }
+.arrow-on { fill: var(--accent); }
+svg.active .n:not(.on):not(.group) { opacity: .35; }
+svg.active .e:not(.on) { opacity: .12; }
+svg.active .e-label:not(.on) { opacity: .25; }
+.n.on rect { stroke: var(--accent); stroke-width: 2.5; }
+.e.on { stroke: var(--accent); opacity: 1; stroke-width: 2.5; }
+.e-label.on { fill: var(--accent); font-weight: 500; }
+.journeys { padding: 16px 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.jbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+.jbtn { font: inherit; font-size: 0.85rem; font-weight: 500; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.jbtn:hover { border-color: var(--primary); }
+.jbtn[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: var(--surface); }
+.steps { margin: 0; padding-left: 1.35rem; display: grid; gap: 8px; font-size: 0.92rem; }
+.steps li::marker { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.jtitle { font-weight: 600; color: var(--primary); }
+.hint { font-size: 0.82rem; color: var(--muted); }
+
+/* Layers */
+.layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.layer { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.layer-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.where { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+.parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.parts li { display: grid; gap: 1px; font-size: 0.92rem; }
+.parts li > span:first-child { font-weight: 600; color: var(--ink); }
+.parts li > span:last-child { color: var(--muted); }
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.m { font-family: var(--mono); font-size: 0.82rem; white-space: nowrap; }
+.verb { display: inline-block; min-width: 3.6rem; font-weight: 500; color: var(--primary); }
+.pub { font-size: 0.72rem; font-weight: 600; color: var(--ok); }
+
+/* Data model */
+.tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.dbt { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; min-width: 0; }
+.dbt h4 { font-family: var(--mono); font-size: 0.9rem; font-weight: 500; padding: 9px 14px; background: var(--primary); color: var(--surface); }
+.dbt ul { list-style: none; margin: 0; padding: 8px 14px 12px; display: grid; gap: 3px; font-family: var(--mono); font-size: 0.78rem; }
+.dbt li { display: flex; justify-content: space-between; gap: 8px; }
+.dbt li span:last-child { color: var(--muted); text-align: right; }
+.dbt .why { padding: 0 14px 12px; font-size: 0.82rem; color: var(--muted); font-family: var(--font); }
+.rel { font-size: 0.9rem; color: var(--muted); }
+
+/* Two-column notes */
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: grid; gap: 10px; align-content: start; }
+.note ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 7px; font-size: 0.92rem; }
+.note li::marker { color: var(--accent); }
+
+/* Q&A */
+.qa { display: grid; gap: 10px; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+details[open] { border-color: var(--primary); }
+summary { cursor: pointer; padding: 14px 18px; font-weight: 600; color: var(--primary); list-style: none; display: flex; gap: 12px; align-items: baseline; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "+"; font-family: var(--mono); color: var(--accent); width: 1ch; flex: none; }
+details[open] summary::before { content: "−"; }
+.ans { padding: 0 18px 16px 2.6rem; display: grid; gap: 8px; font-size: 0.95rem; max-width: 80ch; }
+.ans ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 4px; }
+.qtools { display: flex; gap: 8px; flex-wrap: wrap; }
+.tool { font: inherit; font-size: 0.85rem; min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--primary); cursor: pointer; font-weight: 500; }
+.tool:hover { border-color: var(--primary); }
+
+footer { color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 18px; }
+
+@media (max-width: 900px) {
+  .map-card { grid-template-columns: minmax(0, 1fr); }
+  .diagram { border-right: 0; border-bottom: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .n rect, .e, .e-label { transition: none; }
+}
+</style>
+
+</head>
+<body>
+<main class="wrap">
+
+  <!-- ============ HERO ============ -->
+  <header class="hero">
+    <span class="eyebrow">How the app is built, end to end</span>
+    <div class="wordmark">Plan<span class="my">My</span>Trip</div>
+    <h1>A day-by-day trip planner: React in the browser, FastAPI on Vercel Functions, PostgreSQL on Neon, built spec-first.</h1>
+    <div class="pitch">
+      <span class="eyebrow">The 30-second answer</span>
+      <p>PlanMyTrip is a full-stack web app where travelers plan a trip one day at a time, find ideas, see the weather, share a read-only link, and download the plan as a PDF. The frontend is a <b>React 19 + TypeScript</b> single-page app; the backend is a layered <b>FastAPI</b> REST API; data lives in <b>PostgreSQL on Neon</b>. Both halves deploy together as one <b>Vercel</b> project: every push builds a preview with its own database branch, and merging to <code>main</code> ships to production, with migrations running automatically during the build. Login uses <b>server-side sessions in an httpOnly cookie</b>, and every feature was written as a spec first and reviewed on a preview before merging.</p>
+    </div>
+    <div class="chips" aria-label="Main technologies">
+      <span class="chip"><b>React 19</b> + TypeScript</span>
+      <span class="chip">Vite</span>
+      <span class="chip">Tailwind CSS</span>
+      <span class="chip">TanStack Query</span>
+      <span class="chip">React Router</span>
+      <span class="chip">React Hook Form + Zod</span>
+      <span class="chip"><b>FastAPI</b> · Python 3.14</span>
+      <span class="chip">Pydantic v2</span>
+      <span class="chip">SQLAlchemy 2 + Alembic</span>
+      <span class="chip"><b>PostgreSQL</b> on Neon</span>
+      <span class="chip"><b>Vercel</b> Services</span>
+      <span class="chip">SerpApi · Open-Meteo</span>
+    </div>
+    <div class="facts">
+      <div class="fact"><b>9</b><span>pages (routes) in the React app</span></div>
+      <div class="fact"><b>17</b><span>REST endpoints under <code>/api/v1</code></span></div>
+      <div class="fact"><b>5</b><span>database tables, 5 migrations</span></div>
+      <div class="fact"><b>3</b><span>outside services, all on free plans</span></div>
+      <div class="fact"><b>88</b><span>frontend tests passing (Vitest)</span></div>
+      <div class="fact"><b>$0</b><span>running cost: Vercel, Neon and SerpApi free plans</span></div>
+    </div>
+  </header>
+
+  <!-- ============ SYSTEM MAP ============ -->
+  <section id="map" aria-labelledby="map-h">
+    <div class="sec-head">
+      <span class="eyebrow">1 · The big picture</span>
+      <h2 id="map-h">System map and request journeys</h2>
+      <p class="lede">Pick a journey to light up the path it takes through the system, with each step in order. This is the quickest way to answer “what happens when a user…?”</p>
+    </div>
+    <div class="map-card">
+      <div class="diagram">
+        <svg id="sys" viewBox="0 0 960 540" role="img" aria-labelledby="sys-t sys-d">
+          <title id="sys-t">PlanMyTrip system architecture</title>
+          <desc id="sys-d">The browser talks to one Vercel project. Vercel routes /api requests to the FastAPI backend function and everything else to the static React frontend. The backend reads and writes Neon PostgreSQL and calls SerpApi for ideas. The browser calls Open-Meteo for weather and links out to Google Maps. GitHub pushes trigger Vercel builds that run database migrations.</desc>
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="ah-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrow-on" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+
+          <!-- Vercel group -->
+          <g class="n group" id="n-vercel">
+            <rect x="270" y="112" width="380" height="340" rx="14"/>
+            <text class="t" x="288" y="138">Vercel · one project, “Services”</text>
+            <text class="s" x="288" y="156">planmytrip-sur.vercel.app</text>
+          </g>
+
+          <!-- Nodes -->
+          <g class="n" id="n-browser">
+            <rect x="20" y="200" width="210" height="150" rx="10"/>
+            <text class="t" x="36" y="226">Browser</text>
+            <text x="36" y="248">React 19 single-page app</text>
+            <text class="s" x="36" y="268">TanStack Query cache</text>
+            <text class="s" x="36" y="286">React Router · Tailwind</text>
+            <text class="s" x="36" y="304">PDF built here (react-pdf)</text>
+            <text class="k" x="36" y="328">cookie: session (httpOnly)</text>
+          </g>
+          <g class="n" id="n-router">
+            <rect x="290" y="172" width="340" height="52" rx="8"/>
+            <text class="t" x="306" y="195">Edge routing (vercel.json)</text>
+            <text class="k" x="306" y="214">/api/* → backend · everything else → frontend</text>
+          </g>
+          <g class="n" id="n-frontend">
+            <rect x="290" y="250" width="160" height="112" rx="8"/>
+            <text class="t" x="304" y="274">Frontend service</text>
+            <text x="304" y="295">Vite build</text>
+            <text class="s" x="304" y="314">index.html + JS/CSS</text>
+            <text class="s" x="304" y="332">static, CDN-cached</text>
+          </g>
+          <g class="n" id="n-backend">
+            <rect x="470" y="250" width="160" height="112" rx="8"/>
+            <text class="t" x="484" y="274">Backend service</text>
+            <text x="484" y="295">FastAPI function</text>
+            <text class="s" x="484" y="314">routers → services</text>
+            <text class="s" x="484" y="332">→ SQLAlchemy models</text>
+          </g>
+          <g class="n" id="n-build">
+            <rect x="290" y="382" width="340" height="52" rx="8"/>
+            <text class="t" x="306" y="405">Build on every push</text>
+            <text class="k" x="306" y="424">vite build · uv run alembic upgrade head</text>
+          </g>
+          <g class="n" id="n-neon">
+            <rect x="730" y="250" width="210" height="112" rx="10"/>
+            <text class="t" x="746" y="274">Neon PostgreSQL</text>
+            <text class="s" x="746" y="295">users · sessions · trips</text>
+            <text class="s" x="746" y="313">activities · idea_searches</text>
+            <text class="s" x="746" y="331">preview = own DB branch</text>
+          </g>
+          <g class="n" id="n-serpapi">
+            <rect x="730" y="80" width="210" height="76" rx="10"/>
+            <text class="t" x="746" y="106">SerpApi</text>
+            <text class="s" x="746" y="126">Google Maps results (ideas)</text>
+            <text class="s" x="746" y="143">free: 250 searches / month</text>
+          </g>
+          <g class="n" id="n-meteo">
+            <rect x="20" y="58" width="210" height="76" rx="10"/>
+            <text class="t" x="36" y="84">Open-Meteo</text>
+            <text class="s" x="36" y="104">geocoding + 16-day forecast</text>
+            <text class="s" x="36" y="121">free, no key</text>
+          </g>
+          <g class="n" id="n-maps">
+            <rect x="20" y="430" width="210" height="64" rx="10"/>
+            <text class="t" x="36" y="456">Google Maps</text>
+            <text class="s" x="36" y="476">plain links, no API key</text>
+          </g>
+          <g class="n" id="n-github">
+            <rect x="730" y="430" width="210" height="64" rx="10"/>
+            <text class="t" x="746" y="456">GitHub</text>
+            <text class="s" x="746" y="476">branch push · pull request</text>
+          </g>
+
+          <!-- Edges -->
+          <path class="e" id="e-br-router" d="M230 250 C 260 250, 262 198, 290 198" marker-end="url(#ah)"/>
+          <path class="e" id="e-router-fe" d="M370 224 L370 250" marker-end="url(#ah)"/>
+          <path class="e" id="e-router-be" d="M550 224 L550 250" marker-end="url(#ah)"/>
+          <path class="e" id="e-fe-br" d="M290 330 C 262 330, 258 320, 230 320" marker-end="url(#ah)"/>
+          <path class="e" id="e-be-neon" d="M630 300 L730 300" marker-end="url(#ah)"/>
+          <path class="e" id="e-be-serp" d="M630 270 C 680 270, 680 118, 730 118" marker-end="url(#ah)"/>
+          <path class="e dash" id="e-br-meteo" d="M125 200 L125 134" marker-end="url(#ah)"/>
+          <path class="e dash" id="e-br-maps" d="M125 350 L125 430" marker-end="url(#ah)"/>
+          <path class="e" id="e-gh-build" d="M730 462 C 680 462, 680 408, 630 408" marker-end="url(#ah)"/>
+          <path class="e" id="e-build-neon" d="M600 382 C 680 372, 760 380, 790 362" marker-end="url(#ah)"/>
+
+          <text class="e-label" id="l-br-router" x="236" y="186">HTTPS</text>
+          <text class="e-label" id="l-be-neon" x="650" y="292">SQL</text>
+          <text class="e-label" id="l-be-serp" x="672" y="196">HTTPS</text>
+          <text class="e-label" id="l-br-meteo" x="132" y="172">fetch()</text>
+          <text class="e-label" id="l-br-maps" x="132" y="396">link</text>
+          <text class="e-label" id="l-build-neon" x="660" y="398">migrate</text>
+        </svg>
+      </div>
+      <div class="journeys">
+        <div class="jbtns" role="group" aria-label="Request journeys">
+          <button class="jbtn" type="button" data-j="open" aria-pressed="true">Open a trip</button>
+          <button class="jbtn" type="button" data-j="login" aria-pressed="false">Log in</button>
+          <button class="jbtn" type="button" data-j="ideas" aria-pressed="false">Add an idea</button>
+          <button class="jbtn" type="button" data-j="weather" aria-pressed="false">Weather</button>
+          <button class="jbtn" type="button" data-j="share" aria-pressed="false">Share link</button>
+          <button class="jbtn" type="button" data-j="pdf" aria-pressed="false">Print PDF</button>
+          <button class="jbtn" type="button" data-j="deploy" aria-pressed="false">Deploy</button>
+        </div>
+        <p class="jtitle" id="jtitle"></p>
+        <ol class="steps" id="jsteps"></ol>
+        <p class="hint">Solid lines: requests through our code. Dashed: the browser talking to an outside service directly.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LAYERS ============ -->
+  <section id="layers" aria-labelledby="layers-h">
+    <div class="sec-head">
+      <span class="eyebrow">2 · Components by layer</span>
+      <h2 id="layers-h">What each part does</h2>
+      <p class="lede">The repository has three folders that matter: <code>frontend/</code>, <code>backend/</code> and <code>specs/</code>. Each layer only talks to the one next to it.</p>
+    </div>
+    <div class="layers">
+      <article class="layer">
+        <div class="layer-head"><h3>Frontend · pages</h3><span class="where">frontend/src/pages</span></div>
+        <ul class="parts">
+          <li><span>Signup / Login</span><span>React Hook Form + Zod; on success the server sets the cookie</span></li>
+          <li><span>My Trips <code>/trips</code></span><span>Greeting by first name, upcoming and past trips</span></li>
+          <li><span>New / Edit Trip</span><span>Shared <code>TripForm</code>; Edit warns before shortening deletes activities</span></li>
+          <li><span>Trip Page <code>/trips/:id</code></span><span>Day cards, Ideas panel, Share dialog, weather, Print, Delete</span></li>
+          <li><span>Shared Trip <code>/s/:code</code></span><span>Public read-only copy with weather and PDF download</span></li>
+          <li><span>About, Not Found</span><span>Public pages; every page is lazy-loaded (code splitting)</span></li>
+        </ul>
+      </article>
+      <article class="layer">
+        <div class="layer-head"><h3>Frontend · building blocks</h3><span class="where">components · hooks · lib</span></div>
+        <ul class="parts">
+          <li><span>API client <code>api/client.ts</code></span><span>One <code>fetch</code> wrapper: cookies included, JSON header on writes, errors become <code>ApiError</code></span></li>
+          <li><span>Hooks <code>useTrips</code>, <code>useAuth</code>, <code>useWeather</code></span><span>TanStack Query queries and mutations; mutations invalidate the trip so it refetches</span></li>
+          <li><span>Components</span><span><code>DayCard</code>, <code>IdeasPanel</code>, <code>ShareDialog</code>, <code>DayWeather</code>, <code>BackLink</code>, <code>ConfirmDialog</code> (native <code>&lt;dialog&gt;</code>)</span></li>
+          <li><span>Pure helpers <code>lib/</code></span><span>Dates, sorting, map links, idea categories, weather parsing; unit-tested</span></li>
+          <li><span>PDF <code>pdf/</code></span><span><code>@react-pdf/renderer</code>, imported only when the user clicks Print</span></li>
+        </ul>
+      </article>
+      <article class="layer">
+        <div class="layer-head"><h3>Backend · request path</h3><span class="where">backend/app</span></div>
+        <ul class="parts">
+          <li><span>Middleware</span><span>Request log with an ID (share codes masked); rejects writes without <code>Content-Type: application/json</code> (415)</span></li>
+          <li><span>Routers</span><span><code>auth</code>, <code>trips</code>, <code>activities</code>, <code>ideas</code>, <code>share</code>, <code>health</code>: HTTP only</span></li>
+          <li><span>Dependencies</span><span><code>DB</code> session and <code>CurrentUser</code> (looked up from the cookie) injected with <code>Depends</code></span></li>
+          <li><span>Services</span><span>All business rules: ownership, 14-day limit, shortening trips, idea cache and limits, share codes</span></li>
+          <li><span>Models + schemas</span><span>SQLAlchemy tables; Pydantic models with camelCase JSON</span></li>
+          <li><span>Errors</span><span>One shape everywhere: <code>{"error": {code, message, details}}</code></span></li>
+        </ul>
+      </article>
+      <article class="layer">
+        <div class="layer-head"><h3>Platform and services</h3><span class="where">vercel.json · env vars</span></div>
+        <ul class="parts">
+          <li><span>Vercel Services</span><span>Builds <code>frontend/</code> and <code>backend/</code> separately, serves both at one address, so there's no CORS</span></li>
+          <li><span>Neon PostgreSQL</span><span>Pooled URL for the app, direct URL for migrations; previews get a database branch</span></li>
+          <li><span>SerpApi</span><span>Called only by the backend (key stays secret); answers cached 30 days</span></li>
+          <li><span>Open-Meteo</span><span>Called by the browser; free, no key; credited on the page</span></li>
+          <li><span>Google Maps</span><span>Plain search links on activities and in the PDF; no API, no cost</span></li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ DATA MODEL ============ -->
+  <section id="data" aria-labelledby="data-h">
+    <div class="sec-head">
+      <span class="eyebrow">3 · Data</span>
+      <h2 id="data-h">Database tables</h2>
+      <p class="lede">Five tables in PostgreSQL, created and changed only through Alembic migrations, which run during every Vercel build.</p>
+    </div>
+    <div class="tables">
+      <div class="dbt"><h4>users</h4><ul>
+        <li><span>id</span><span>uuid PK</span></li><li><span>username</span><span>unique, lowercase</span></li><li><span>password_hash</span><span>Argon2id</span></li><li><span>name</span><span>optional</span></li>
+      </ul><p class="why">Usernames are case-insensitive; the password itself is never stored.</p></div>
+      <div class="dbt"><h4>sessions</h4><ul>
+        <li><span>id</span><span>SHA-256 of token</span></li><li><span>user_id</span><span>FK → users</span></li><li><span>expires_at</span><span>12 h idle</span></li>
+      </ul><p class="why">Only the hash is stored, so a database leak gives no usable logins.</p></div>
+      <div class="dbt"><h4>trips</h4><ul>
+        <li><span>user_id</span><span>FK → users</span></li><li><span>destination</span><span>text ≤ 100</span></li><li><span>start/end_date</span><span>≤ 14 days</span></li><li><span>trip_type</span><span>solo… friends</span></li><li><span>share_token</span><span>unique, nullable</span></li>
+      </ul><p class="why">Check constraints enforce the date rules in the database too.</p></div>
+      <div class="dbt"><h4>activities</h4><ul>
+        <li><span>trip_id</span><span>FK → trips</span></li><li><span>day_number</span><span>1…N</span></li><li><span>title</span><span>≤ 100</span></li><li><span>time</span><span>nullable</span></li><li><span>notes</span><span>≤ 500</span></li>
+      </ul><p class="why">Tied to a day number, not a date, so moving a trip's dates keeps the plan.</p></div>
+      <div class="dbt"><h4>idea_searches</h4><ul>
+        <li><span>query_key</span><span>unique</span></li><li><span>results</span><span>jsonb</span></li><li><span>fetched_at</span><span>30-day cache</span></li><li><span>fetched_by</span><span>daily limit</span></li>
+      </ul><p class="why">Shared cache of SerpApi answers across all users and trips.</p></div>
+    </div>
+    <p class="rel">A user has many sessions and trips; a trip has many activities. Deleting a user or a trip cascades. Migrations only add things (new tables, nullable columns), so the version still running keeps working during a deploy.</p>
+  </section>
+
+  <!-- ============ API ============ -->
+  <section id="api" aria-labelledby="api-h">
+    <div class="sec-head">
+      <span class="eyebrow">4 · API contract</span>
+      <h2 id="api-h">REST endpoints</h2>
+      <p class="lede">JSON over HTTPS, all under <code>/api/v1</code>. The API contract spec is the single source of truth that both the TypeScript and the Python sides follow.</p>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th scope="col">Endpoint</th><th scope="col">What it does</th><th scope="col">Feature</th></tr></thead>
+        <tbody>
+          <tr><td class="m"><span class="verb">POST</span>/auth/signup · /auth/login</td><td>Create an account or log in; sets the <code>session</code> cookie</td><td>Accounts</td></tr>
+          <tr><td class="m"><span class="verb">POST</span>/auth/logout</td><td>Deletes the session row and clears the cookie</td><td>Accounts</td></tr>
+          <tr><td class="m"><span class="verb">GET</span>/auth/me</td><td>Who is logged in (used at startup)</td><td>Accounts</td></tr>
+          <tr><td class="m"><span class="verb">GET</span>/trips · <span class="verb">POST</span>/trips</td><td>List your trips · create one</td><td>Trips</td></tr>
+          <tr><td class="m"><span class="verb">GET</span>/trips/{id}</td><td>One trip with all activities, sorted, plus its share code</td><td>Trips</td></tr>
+          <tr><td class="m"><span class="verb">PATCH</span>/trips/{id}</td><td>Change dates, destination or type; 409 if shortening would delete activities without confirmation</td><td>Trips</td></tr>
+          <tr><td class="m"><span class="verb">DELETE</span>/trips/{id}</td><td>Delete a trip and its activities</td><td>Trips</td></tr>
+          <tr><td class="m"><span class="verb">POST</span>/trips/{id}/activities</td><td>Add an activity to a day</td><td>Plan</td></tr>
+          <tr><td class="m"><span class="verb">PATCH</span>· <span class="verb">DELETE</span>/activities/{id}</td><td>Edit or delete an activity</td><td>Plan</td></tr>
+          <tr><td class="m"><span class="verb">GET</span>/trips/{id}/ideas?category=</td><td>Up to 10 Google Maps places; cached 30 days; 20 new searches per user per day</td><td>Ideas</td></tr>
+          <tr><td class="m"><span class="verb">POST</span>· <span class="verb">DELETE</span>/trips/{id}/share</td><td>Turn the read-only link on (keeps an existing code) or off</td><td>Sharing</td></tr>
+          <tr><td class="m"><span class="verb">GET</span>/shared/{code} <span class="pub">PUBLIC</span></td><td>Read-only copy: no IDs, no owner; <code>no-store</code>, <code>noindex</code></td><td>Sharing</td></tr>
+          <tr><td class="m"><span class="verb">GET</span>/health <span class="pub">PUBLIC</span></td><td>API and database are up</td><td>Ops</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ SECURITY & RELIABILITY ============ -->
+  <section id="security" aria-labelledby="sec-h">
+    <div class="sec-head">
+      <span class="eyebrow">5 · Cross-cutting concerns</span>
+      <h2 id="sec-h">Security, reliability and cost</h2>
+    </div>
+    <div class="cols">
+      <div class="note">
+        <h3>Authentication</h3>
+        <ul>
+          <li>Server-side sessions: 32 random bytes in an <b>httpOnly, Secure, SameSite=Lax</b> cookie; the database stores only its SHA-256.</li>
+          <li>Passwords hashed with <b>Argon2id</b>. Wrong username and wrong password give the same error, with a dummy hash check, so timing doesn't reveal usernames.</li>
+          <li>Ends after 12 hours idle. Closing the tab also logs you out: a <code>sessionStorage</code> marker survives refresh but not closing, so the next visit logs out first.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>Authorization and CSRF</h3>
+        <ul>
+          <li>Every query filters by the current user. Someone else's trip returns <b>404, not 403</b>, so IDs can't be probed.</li>
+          <li>CSRF: SameSite cookies, plus every write must send <code>Content-Type: application/json</code>, which a form on another site can't do. Otherwise it gets 415.</li>
+          <li>No CORS at all: the frontend and API share one origin.</li>
+          <li>Share links: 128 random bits, revocable, read-only shape, kept out of search engines and masked in logs.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>Serverless and data</h3>
+        <ul>
+          <li>Functions keep no state in memory; everything lives in Postgres.</li>
+          <li>SQLAlchemy uses <code>NullPool</code> with prepared statements off, because Neon's pooler (PgBouncer, transaction mode) does the pooling.</li>
+          <li>Migrations run in the build before the new code goes live. If one fails, the build stops and the old version stays up.</li>
+          <li>Unsaved edits are sent on <code>pagehide</code> with <code>fetch(…, {keepalive: true})</code>.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>Staying at $0</h3>
+        <ul>
+          <li>Ideas: results shared and cached for 30 days, 20 new searches per user per day, a 10 s timeout with no retry (a retry would spend another search), and an older saved answer as fallback.</li>
+          <li>Weather goes straight from the browser to Open-Meteo: no key, no server time.</li>
+          <li>The PDF is built in the browser, so there's no export endpoint.</li>
+          <li>An AI trip assistant was designed, then shelved because of its running cost.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TESTING & WORKFLOW ============ -->
+  <section id="workflow" aria-labelledby="wf-h">
+    <div class="sec-head">
+      <span class="eyebrow">6 · How it was built</span>
+      <h2 id="wf-h">Testing, tooling and workflow</h2>
+    </div>
+    <div class="cols">
+      <div class="note">
+        <h3>Spec-first workflow</h3>
+        <ul>
+          <li>Four specs in <code>specs/</code>: goal (features, user stories), frontend, backend, and the API contract.</li>
+          <li>Every change: update the spec, then build on a branch.</li>
+          <li>Each push creates a Vercel preview with its own Neon database branch; it's reviewed there, then merged by pull request.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>Frontend tests</h3>
+        <ul>
+          <li><b>Vitest + React Testing Library</b>; the API is mocked at the network level with <b>MSW</b>.</li>
+          <li>Unit tests for pure helpers (dates, weather parsing, idea categories), component tests for forms, day cards, the Ideas panel, the Share dialog and pages.</li>
+          <li>TypeScript strict mode, oxlint.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>Backend tests</h3>
+        <ul>
+          <li><b>pytest</b> with FastAPI's <code>TestClient</code> against a <b>real PostgreSQL</b> (Docker), migrated once per run.</li>
+          <li>Each test runs inside a transaction that's rolled back, so tests don't affect each other.</li>
+          <li>SerpApi is replaced by a fake: no real searches are spent. Ruff for lint and format; <code>uv</code> for packages.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INTERVIEW Q&A ============ -->
+  <section id="qa" aria-labelledby="qa-h">
+    <div class="sec-head">
+      <span class="eyebrow">7 · Interview prep</span>
+      <h2 id="qa-h">Questions you're likely to get</h2>
+      <p class="lede">Short answers you can say out loud, with the reasoning behind each choice.</p>
+    </div>
+    <div class="qtools">
+      <button class="tool" type="button" id="open-all">Open all</button>
+      <button class="tool" type="button" id="close-all">Close all</button>
+    </div>
+    <div class="qa" id="qa-list">
+      <details><summary>Walk me through the architecture.</summary><div class="ans">
+        <p>A React single-page app talks JSON to a FastAPI REST API, which stores data in PostgreSQL. Both are deployed as one Vercel project: Vercel's routing sends <code>/api/*</code> to the Python function and everything else to the static frontend, so they share one domain. The backend is layered: routers handle HTTP, services hold the business rules, and SQLAlchemy models talk to the database.</p>
+      </div></details>
+      <details><summary>Why React + FastAPI instead of one full-stack framework?</summary><div class="ans">
+        <p>A clear split between a typed UI and a typed API, each with its own validation (Zod and Pydantic) and tests. Python suits the backend logic and its tests against real Postgres. Vercel Services still deploys both together, so there's no CORS and only one deploy.</p>
+      </div></details>
+      <details><summary>How does login work? Why not a JWT in localStorage?</summary><div class="ans">
+        <p>Server-side sessions. Login creates a random token, stores its SHA-256 in a <code>sessions</code> table, and sets the token in an <b>httpOnly</b> cookie. JavaScript can't read the cookie, so an XSS bug can't steal it, and a session can be ended immediately by deleting its row. A JWT in localStorage is readable by scripts and hard to revoke.</p>
+      </div></details>
+      <details><summary>How do you protect against CSRF?</summary><div class="ans">
+        <ul><li><code>SameSite=Lax</code> stops the cookie on most cross-site requests.</li><li>Every write must have <code>Content-Type: application/json</code>, which a plain HTML form can't send, and a cross-site script can't either without a CORS preflight that the API never allows. Writes without it get 415.</li></ul>
+      </div></details>
+      <details><summary>How do you stop users seeing each other's trips?</summary><div class="ans">
+        <p>Every service query filters by the logged-in user's ID. A trip that isn't yours returns <b>404</b> rather than 403, so trip IDs can't be probed. Tests use a second user to check this on every endpoint.</p>
+      </div></details>
+      <details><summary>What changes when the backend runs serverless?</summary><div class="ans">
+        <ul><li>No in-memory state: sessions, caches and limits all live in Postgres.</li><li>Connections: <code>NullPool</code> with Neon's pooled URL, and prepared statements turned off because the pooler runs PgBouncer in transaction mode.</li><li>Cold starts are acceptable at this scale; the health endpoint helps check deployments.</li></ul>
+      </div></details>
+      <details><summary>How do database migrations deploy safely?</summary><div class="ans">
+        <p>Alembic runs as the backend's build command, using Neon's direct connection, before the new code goes live. If it fails, the build stops and the old version keeps running. Migrations only add things (new tables, nullable columns), so the old code still works with the new schema. Preview builds migrate their own Neon database branch, never production.</p>
+      </div></details>
+      <details><summary>How does the Ideas feature avoid running costs?</summary><div class="ans">
+        <ul><li>SerpApi's free plan gives 250 searches a month, and its key stays on the server.</li><li>Answers are saved in <code>idea_searches</code> for 30 days and shared by every trip to the same place.</li><li>Each user gets 20 new searches a day; saved ones are free.</li><li>No retries, because a retry spends another search. If SerpApi fails, an older saved answer is used; with none, the panel offers a Google Maps link instead.</li></ul>
+      </div></details>
+      <details><summary>Why call Open-Meteo from the browser but SerpApi from the server?</summary><div class="ans">
+        <p>SerpApi needs a secret key and has a small quota, so it must sit behind the server, which also caches and rate-limits it. Open-Meteo needs no key and has generous free limits, so calling it from the browser saves server time and code. If it fails, the weather is simply hidden.</p>
+      </div></details>
+      <details><summary>How are share links kept safe?</summary><div class="ans">
+        <ul><li>Codes are 128 random bits (<code>secrets.token_urlsafe(16)</code>), so they can't be guessed.</li><li>The public endpoint returns a reduced shape with no IDs or owner.</li><li>It sends <code>Cache-Control: no-store</code>, so turning a link off works at once, and <code>noindex</code> for search engines.</li><li>Codes are masked in request logs. Turning a link off deletes the code; sharing again makes a new one.</li></ul>
+      </div></details>
+      <details><summary>How do you manage state on the frontend?</summary><div class="ans">
+        <p>Server data lives in TanStack Query. After any change, the app invalidates the trip query and refetches, so nothing is shown that the server hasn't confirmed. UI state is plain <code>useState</code>. There's no global store; the logged-in user is just the <code>['me']</code> query.</p>
+      </div></details>
+      <details><summary>How do you validate input?</summary><div class="ans">
+        <p>Twice, from one contract. Zod schemas give instant feedback in forms; Pydantic validates again on the server, with the same messages. The API contract spec defines every rule, for example the 14-day limit, no start date in the past, and title length. Date rules are also database check constraints.</p>
+      </div></details>
+      <details><summary>How is the PDF made?</summary><div class="ans">
+        <p>In the browser with <code>@react-pdf/renderer</code>, built from the same trip data the page already has. The library is large, so it's only loaded when the user clicks Print. The PDF has clickable Google Maps links on every activity.</p>
+      </div></details>
+      <details><summary>How is it tested?</summary><div class="ans">
+        <ul><li>Backend: pytest against real Postgres. Each test runs in a transaction that's rolled back. Outside services are faked.</li><li>Frontend: Vitest and React Testing Library, with MSW mocking the API at the network level.</li><li>Every feature is also checked by hand on its Vercel preview before merging.</li></ul>
+      </div></details>
+      <details><summary>What happens if a user closes the tab with unsaved changes?</summary><div class="ans">
+        <p>On <code>pagehide</code>, every open form with valid unsaved changes is sent with <code>fetch(…, {keepalive: true})</code>, which finishes after the page is gone. The session is still valid then, because logout only happens on the next visit.</p>
+      </div></details>
+      <details><summary>What would you improve next?</summary><div class="ans">
+        <ul><li>CI with GitHub Actions to run both test suites on every pull request.</li><li>Rate limiting failed logins, with counts stored in Postgres.</li><li>Playwright end-to-end tests (already written, parked).</li><li>Error monitoring and structured logs.</li><li>Features: packing list, calendar export, a "today" view, installable PWA.</li></ul>
+      </div></details>
+    </div>
+  </section>
+
+  <footer>
+    PlanMyTrip · live at <a href="https://planmytrip-sur.vercel.app" target="_blank" rel="noopener noreferrer">planmytrip-sur.vercel.app</a> · source: frontend/, backend/, specs/ · reflects <code>main</code> as of Oct 18, 2026 (PR #1 and PR #2 merged)
+  </footer>
+</main>
+
+<script>
+(function () {
+  var J = {
+    open: {
+      title: 'Opening a trip page',
+      nodes: ['n-browser', 'n-router', 'n-frontend', 'n-backend', 'n-neon'],
+      edges: ['e-br-router', 'e-router-fe', 'e-fe-br', 'e-router-be', 'e-be-neon'],
+      labels: ['l-br-router', 'l-be-neon'],
+      steps: [
+        'The browser asks for <code>/trips/42</code>. Vercel’s routing sends it to the frontend service, which returns <code>index.html</code> and the JS bundle; React Router picks the Trip page (lazy-loaded).',
+        'The page calls <code>GET /api/v1/trips/42</code> through the API client, with the session cookie.',
+        'Vercel routes <code>/api/*</code> to the FastAPI function. Middleware logs the request; the <code>CurrentUser</code> dependency hashes the cookie and finds the session in Postgres.',
+        '<code>trip_service.get_trip</code> loads the trip <b>only if it belongs to this user</b> (else 404), with activities sorted by day, time, then creation.',
+        'Pydantic turns it into camelCase JSON. TanStack Query caches it and React renders the day cards.'
+      ]
+    },
+    login: {
+      title: 'Logging in',
+      nodes: ['n-browser', 'n-router', 'n-backend', 'n-neon'],
+      edges: ['e-br-router', 'e-router-be', 'e-be-neon'],
+      labels: ['l-br-router', 'l-be-neon'],
+      steps: [
+        'The Login form validates with Zod, then sends <code>POST /auth/login</code> as JSON.',
+        '<code>auth_service</code> finds the lowercased username and checks the password with <b>Argon2id</b>. A missing user still runs a dummy check, so timing reveals nothing.',
+        '<code>session_service</code> makes 32 random bytes, stores their SHA-256 in <code>sessions</code> with a 12-hour idle expiry.',
+        'The response sets the <code>session</code> cookie: httpOnly, Secure, SameSite=Lax, no expiry date.',
+        'The app stores the user in the <code>[\'me\']</code> query and sets a <code>sessionStorage</code> marker so a refresh stays logged in but a closed tab doesn’t.'
+      ]
+    },
+    ideas: {
+      title: 'Finding an idea and adding it to a day',
+      nodes: ['n-browser', 'n-router', 'n-backend', 'n-neon', 'n-serpapi'],
+      edges: ['e-br-router', 'e-router-be', 'e-be-neon', 'e-be-serp'],
+      labels: ['l-br-router', 'l-be-neon', 'l-be-serp'],
+      steps: [
+        'Opening a tab in the Ideas panel calls <code>GET /trips/42/ideas?category=museums</code>.',
+        '<code>idea_service</code> builds “museums in Paris, France” and looks it up in <code>idea_searches</code>. Saved within 30 days: return it, no outside call.',
+        'Otherwise, check the user’s 20-a-day limit (429 if reached), then ask <b>SerpApi</b> once (10 s timeout, no retry) and keep the first 10 places.',
+        'Upsert the answer (<code>INSERT … ON CONFLICT DO UPDATE</code>) and return it. If SerpApi fails, an older saved answer is used, or 503 with a Google Maps fallback link.',
+        'Clicking <b>Add to Day 2</b> reuses <code>POST /trips/42/activities</code>; the trip query is invalidated and the new activity appears.'
+      ]
+    },
+    weather: {
+      title: 'Showing the weather',
+      nodes: ['n-browser', 'n-meteo'],
+      edges: ['e-br-meteo'],
+      labels: ['l-br-meteo'],
+      steps: [
+        '<code>useTripWeather</code> works out which trip days fall within today … today + 15. None: nothing is fetched.',
+        'The browser calls Open-Meteo’s geocoding with “Paris” and picks the result matching “France” (so “Paris, Texas” works too).',
+        'It asks for the daily forecast (weather code, high, low, rain chance) for just those dates, in °C. No key, and our server isn’t involved.',
+        'TanStack Query caches it for an hour. Each <code>DayCard</code> shows its day; any failure just hides the weather.'
+      ]
+    },
+    share: {
+      title: 'Sharing a read-only link',
+      nodes: ['n-browser', 'n-router', 'n-backend', 'n-neon', 'n-frontend'],
+      edges: ['e-br-router', 'e-router-be', 'e-be-neon', 'e-router-fe', 'e-fe-br'],
+      labels: ['l-br-router', 'l-be-neon'],
+      steps: [
+        'The owner clicks <b>Share → Create link</b>: <code>POST /trips/42/share</code>. The service stores <code>secrets.token_urlsafe(16)</code> in <code>trips.share_token</code> (or keeps the existing one).',
+        'The dialog shows <code>https://…/s/&lt;code&gt;</code> to copy or send with the phone’s share sheet.',
+        'A friend opens the link: the frontend serves the Shared Trip page, which calls the public <code>GET /shared/&lt;code&gt;</code> without any login.',
+        'The backend returns only destination, dates, type and activities, with <code>no-store</code> and <code>noindex</code>. The code is masked in the logs.',
+        '<b>Turn off link</b> sets the code to NULL, so the old link returns 404 at once.'
+      ]
+    },
+    pdf: {
+      title: 'Printing the itinerary',
+      nodes: ['n-browser', 'n-maps'],
+      edges: ['e-br-maps'],
+      labels: ['l-br-maps'],
+      steps: [
+        'Clicking <b>Print</b> dynamically imports <code>@react-pdf/renderer</code>, so its size isn’t in the first page load.',
+        'The PDF is built in the browser from the trip already in the TanStack Query cache, with Fira Sans registered as the font.',
+        'Each activity gets a clickable Google Maps search link. The file downloads directly; the server isn’t involved.'
+      ]
+    },
+    deploy: {
+      title: 'Shipping a change',
+      nodes: ['n-github', 'n-build', 'n-neon', 'n-frontend', 'n-backend'],
+      edges: ['e-gh-build', 'e-build-neon'],
+      labels: ['l-build-neon'],
+      steps: [
+        'Update the spec, write code and tests on a branch, then <code>git push</code>.',
+        'Vercel builds a <b>preview</b>. Neon creates a database branch for it, so the preview never touches production data.',
+        'The build runs <code>vite build</code> for the frontend and <code>uv run alembic upgrade head</code> for the backend. A failing migration stops the deploy.',
+        'Review on the preview URL, then open a pull request and merge it to <code>main</code>.',
+        'The merge triggers the production build, which migrates the production database and goes live.'
+      ]
+    }
+  };
+
+  var svg = document.getElementById('sys');
+  var title = document.getElementById('jtitle');
+  var steps = document.getElementById('jsteps');
+
+  function show(key) {
+    var j = J[key];
+    svg.classList.add('active');
+    svg.querySelectorAll('.on').forEach(function (el) { el.classList.remove('on'); });
+    svg.querySelectorAll('.e').forEach(function (el) { el.setAttribute('marker-end', 'url(#ah)'); });
+    j.nodes.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.add('on'); });
+    j.edges.forEach(function (id) { var el = document.getElementById(id); if (el) { el.classList.add('on'); el.setAttribute('marker-end', 'url(#ah-on)'); } });
+    j.labels.forEach(function (id) { var el = document.getElementById(id); if (el) el.classList.add('on'); });
+    title.textContent = j.title;
+    steps.innerHTML = j.steps.map(function (s) { return '<li>' + s + '</li>'; }).join('');
+    document.querySelectorAll('.jbtn').forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.j === key ? 'true' : 'false'); });
+    try { localStorage.setItem('pmt-arch-journey', key); } catch (e) {}
+  }
+
+  document.querySelectorAll('.jbtn').forEach(function (b) {
+    b.addEventListener('click', function () { show(b.dataset.j); });
+  });
+  var start = 'open';
+  try { var saved = localStorage.getItem('pmt-arch-journey'); if (saved && J[saved]) start = saved; } catch (e) {}
+  show(start);
+
+  document.getElementById('open-all').addEventListener('click', function () {
+    document.querySelectorAll('#qa-list details').forEach(function (d) { d.open = true; });
+  });
+  document.getElementById('close-all').addEventListener('click', function () {
+    document.querySelectorAll('#qa-list details').forEach(function (d) { d.open = false; });
+  });
+})();
+</script>
+
+</body>
+</html>
