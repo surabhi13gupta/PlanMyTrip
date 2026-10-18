@@ -11,6 +11,11 @@ import { Spinner } from './Icons'
 import { IdeaGlyph } from './IdeaGlyph'
 import { MapLink } from './MapLink'
 import { Skeleton } from './States'
+
+/** From this width the panel sits beside the plan instead of over it (Tailwind's `xl`). */
+const DOCKED_QUERY = '(min-width: 1280px)'
+/** Ideas shown before "Show N more". */
+const FIRST_IDEAS = 5
 import { buttonClass, iconButtonClass, inputClass, linkClass } from './ui'
 
 interface IdeasPanelProps {
@@ -25,8 +30,8 @@ interface IdeasPanelProps {
 
 /**
  * The Ideas panel (frontend-spec.md §4.5.1, US8): Google Maps places by category, each addable
- * to a day. Docked on the right on laptops (lg), a sheet from the bottom below that. It stays
- * mounted while closed, so the last tab picked is remembered for the visit.
+ * to a day. Docked beside the plan from xl, a drawer from the right from sm, a sheet on phones.
+ * It stays mounted while closed, so the last tab picked is remembered for the visit.
  */
 export function IdeasPanel({ trip, days, open, dayNumber, onDayChange, onClose }: IdeasPanelProps) {
   const categories = ideasForTripType(trip.tripType)
@@ -38,6 +43,8 @@ export function IdeasPanel({ trip, days, open, dayNumber, onDayChange, onClose }
   const [addingKey, setAddingKey] = useState<string | null>(null)
   const mutations = useActivityMutations(trip.id)
   const ideas = useIdeas(trip.id, trip.destination, category.id, open)
+  // The category whose full list of 10 is showing; every other category shows the first 5.
+  const [expanded, setExpanded] = useState<string | null>(null)
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -56,6 +63,21 @@ export function IdeasPanel({ trip, days, open, dayNumber, onDayChange, onClose }
     }
   }, [open, onClose])
 
+  // Over the page (drawer or sheet), the page behind mustn't scroll too: one scrollbar only.
+  useEffect(() => {
+    if (!open) return
+    const docked = window.matchMedia?.(DOCKED_QUERY)
+    const update = () => {
+      document.body.style.overflow = docked?.matches ? '' : 'hidden'
+    }
+    update()
+    docked?.addEventListener?.('change', update)
+    return () => {
+      docked?.removeEventListener?.('change', update)
+      document.body.style.overflow = ''
+    }
+  }, [open])
+
   const add = (idea: IdeaPlace) => {
     const key = `${idea.id}|${dayNumber}`
     setAddingKey(key)
@@ -64,8 +86,8 @@ export function IdeasPanel({ trip, days, open, dayNumber, onDayChange, onClose }
       {
         onSuccess: () => {
           setAdded((prev) => new Set(prev).add(key))
-          // On laptops the plan is visible beside the panel; phones need to be told.
-          if (!window.matchMedia?.('(min-width: 1024px)').matches) toast.success(`Added to Day ${dayNumber}`)
+          // Docked, the plan is visible beside the panel; over the page, the traveler needs telling.
+          if (!window.matchMedia?.(DOCKED_QUERY).matches) toast.success(`Added to Day ${dayNumber}`)
         },
         onError: toastError,
         onSettled: () => setAddingKey(null),
@@ -76,19 +98,21 @@ export function IdeasPanel({ trip, days, open, dayNumber, onDayChange, onClose }
   return (
     <>
       {open && (
-        <div aria-hidden="true" className="fixed inset-0 z-30 bg-ink/45 lg:hidden" onClick={onClose} />
+        <div aria-hidden="true" className="fixed inset-0 z-30 bg-ink/45 xl:hidden" onClick={onClose} />
       )}
       <aside
         role="dialog"
         aria-labelledby={titleId}
         hidden={!open}
         className={
-          'fixed inset-x-0 bottom-0 z-40 flex h-[85dvh] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl ' +
-          'lg:sticky lg:top-4 lg:z-auto lg:h-[calc(100dvh-2rem)] lg:rounded-[10px] lg:border lg:border-line lg:shadow-none'
+          // Phones: a sheet leaving a strip of page at the top. sm: a drawer from the right. xl: docked.
+          'fixed inset-x-0 bottom-0 z-40 flex h-[calc(100dvh-2.5rem)] flex-col overflow-hidden rounded-t-2xl bg-surface shadow-2xl ' +
+          'sm:inset-y-0 sm:right-0 sm:left-auto sm:h-dvh sm:w-[440px] sm:rounded-none sm:rounded-l-2xl ' +
+          'xl:sticky xl:inset-auto xl:top-4 xl:z-auto xl:h-[calc(100dvh-2rem)] xl:w-auto xl:rounded-[10px] xl:border xl:border-line xl:shadow-none'
         }
       >
-        <div aria-hidden="true" className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-line lg:hidden" />
-        <div className="grid gap-2.5 border-b border-line px-4 pt-3 pb-3">
+        <div aria-hidden="true" className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-line sm:hidden" />
+        <div className="grid gap-3 border-b border-line px-5 pt-3 pb-3.5 sm:pt-4">
           <div className="flex items-center justify-between gap-2">
             <h2 id={titleId} className="min-w-0 text-lg font-semibold break-words text-primary">
               Ideas for {trip.destination}
@@ -116,7 +140,16 @@ export function IdeasPanel({ trip, days, open, dayNumber, onDayChange, onClose }
           </div>
         </div>
 
-        <div role="tablist" aria-label="Idea categories" className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-line px-4 py-2.5">
+        {/* Phones: one row to swipe, scrollbar hidden, right edge fading out. sm and up: the tabs wrap. */}
+        <div
+          role="tablist"
+          aria-label="Idea categories"
+          className={
+            'flex shrink-0 gap-2 overflow-x-auto border-b border-line py-3 pr-10 pl-5 [scrollbar-width:none] ' +
+            '[mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)] [&::-webkit-scrollbar]:hidden ' +
+            'sm:flex-wrap sm:overflow-visible sm:pr-5 sm:[mask-image:none]'
+          }
+        >
           {categories.map((c) => {
             const selected = c.id === category.id
             return (
@@ -149,7 +182,7 @@ export function IdeasPanel({ trip, days, open, dayNumber, onDayChange, onClose }
           id={`${titleId}-list`}
           role="tabpanel"
           aria-labelledby={`${titleId}-tab-${category.id}`}
-          className="min-h-0 flex-1 overflow-y-auto px-4 pb-2"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-3 [scrollbar-color:var(--color-line)_transparent] [scrollbar-width:thin]"
         >
           {ideas.isPending ? (
             <IdeasSkeleton />
@@ -170,25 +203,38 @@ export function IdeasPanel({ trip, days, open, dayNumber, onDayChange, onClose }
               </a>
             </div>
           ) : (
-            <ul className="grid">
-              {ideas.data.ideas.map((idea) => {
-                const key = `${idea.id}|${dayNumber}`
-                return (
-                  <IdeaCard
-                    key={idea.id}
-                    idea={idea}
-                    icon={category.icon}
-                    dayNumber={dayNumber}
-                    added={added.has(key)}
-                    adding={addingKey === key}
-                    onAdd={() => add(idea)}
-                  />
-                )
-              })}
-            </ul>
+            <>
+              <ul className="grid">
+                {ideas.data.ideas
+                  .slice(0, expanded === category.id ? undefined : FIRST_IDEAS)
+                  .map((idea) => {
+                    const key = `${idea.id}|${dayNumber}`
+                    return (
+                      <IdeaCard
+                        key={idea.id}
+                        idea={idea}
+                        icon={category.icon}
+                        dayNumber={dayNumber}
+                        added={added.has(key)}
+                        adding={addingKey === key}
+                        onAdd={() => add(idea)}
+                      />
+                    )
+                  })}
+              </ul>
+              {expanded !== category.id && ideas.data.ideas.length > FIRST_IDEAS && (
+                <button
+                  type="button"
+                  className={`${buttonClass.secondary} mb-1 w-full`}
+                  onClick={() => setExpanded(category.id)}
+                >
+                  Show {ideas.data.ideas.length - FIRST_IDEAS} more
+                </button>
+              )}
+            </>
           )}
         </div>
-        <p className="border-t border-line px-4 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] text-xs text-muted lg:pb-3">
+        <p className="border-t border-line px-5 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] text-xs text-muted">
           Results from Google Maps, via SerpApi.
         </p>
       </aside>
@@ -213,10 +259,10 @@ export function IdeaCard({
 }) {
   const details = [idea.type, idea.address].filter(Boolean).join(' · ')
   return (
-    <li className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 border-t border-line py-3 first:border-t-0">
+    <li className="grid grid-cols-[72px_minmax(0,1fr)] gap-3.5 border-t border-line py-4 first:border-t-0">
       <IdeaThumbnail url={idea.thumbnailUrl} icon={icon} />
-      <div className="grid min-w-0 gap-px">
-        <span className="truncate font-semibold" title={idea.name}>
+      <div className="grid min-w-0 content-start gap-0.5">
+        <span className="line-clamp-2 leading-snug font-semibold break-words" title={idea.name}>
           {idea.name}
         </span>
         {(idea.rating !== null || idea.priceLevel) && (
@@ -241,24 +287,24 @@ export function IdeaCard({
           </span>
         )}
         {details && (
-          <span className="truncate text-sm text-muted" title={details}>
+          <span className="line-clamp-2 text-sm break-words text-muted" title={details}>
             {details}
           </span>
         )}
-        <div className="mt-1 flex items-center justify-between gap-2">
+        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
           <MapLink query={idea.address ? `${idea.name}, ${idea.address}` : idea.name} label={idea.name} />
           {added ? (
             <button
               type="button"
               disabled
-              className="inline-flex min-h-9 items-center rounded-lg bg-success-soft px-3 text-sm font-medium whitespace-nowrap text-success"
+              className="inline-flex min-h-10 items-center rounded-lg bg-success-soft px-3 text-sm font-medium whitespace-nowrap text-success"
             >
               ✓ Added to Day {dayNumber}
             </button>
           ) : (
             <button
               type="button"
-              className={`${buttonClass.primary} min-h-9 px-3 text-sm whitespace-nowrap`}
+              className={`${buttonClass.primary} min-h-10 px-3.5 text-sm whitespace-nowrap`}
               aria-label={`Add ${idea.name} to Day ${dayNumber}`}
               disabled={adding}
               onClick={onAdd}
@@ -277,7 +323,7 @@ function IdeaThumbnail({ url, icon }: { url: string | null; icon: IdeaIcon }) {
   const [failed, setFailed] = useState(false)
   if (!url || failed) {
     return (
-      <div aria-hidden="true" className="grid size-16 place-items-center rounded-lg bg-primary-soft text-primary">
+      <div aria-hidden="true" className="grid size-[72px] place-items-center rounded-lg bg-primary-soft text-primary">
         <IdeaGlyph icon={icon} size={26} />
       </div>
     )
@@ -286,12 +332,12 @@ function IdeaThumbnail({ url, icon }: { url: string | null; icon: IdeaIcon }) {
     <img
       src={url}
       alt=""
-      width={64}
-      height={64}
+      width={72}
+      height={72}
       loading="lazy"
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
-      className="size-16 rounded-lg bg-line object-cover"
+      className="size-[72px] rounded-lg bg-line object-cover"
     />
   )
 }
@@ -300,8 +346,8 @@ function IdeasSkeleton() {
   return (
     <div role="status" aria-label="Loading ideas" className="grid">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="grid grid-cols-[64px_minmax(0,1fr)] gap-3 py-3">
-          <Skeleton className="size-16" />
+        <div key={i} className="grid grid-cols-[72px_minmax(0,1fr)] gap-3.5 py-4">
+          <Skeleton className="size-[72px]" />
           <div className="grid content-start gap-2 pt-1">
             <Skeleton className="h-3.5 w-2/3" />
             <Skeleton className="h-3 w-2/5" />

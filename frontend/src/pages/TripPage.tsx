@@ -47,7 +47,14 @@ function TripPlan({ trip }: { trip: TripDetail }) {
   const pickedDay = ideasDay !== null && ideasDay <= days.length ? ideasDay : defaultIdeasDay(days)
 
   return (
-    <div className={`grid items-start gap-5 ${ideasOpen ? 'lg:grid-cols-[minmax(0,1fr)_400px]' : ''}`}>
+    <div
+      className={
+        'grid items-start gap-5 ' +
+        // Docked (xl), the page widens from the layout's 1024px to up to 1216px so the plan keeps
+        // its width beside the 440px panel (§4.5.1). The 4rem leaves room for a scrollbar.
+        (ideasOpen ? 'xl:-mx-[calc((min(100vw_-_4rem,76rem)_-_100%)_/_2)] xl:grid-cols-[minmax(0,1fr)_440px]' : '')
+      }
+    >
       <div className="grid min-w-0 gap-5">
         <header className={`${cardClass} grid gap-3 p-5`}>
           <div className="flex items-start justify-between gap-3">

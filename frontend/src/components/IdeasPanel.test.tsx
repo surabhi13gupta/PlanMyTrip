@@ -99,6 +99,18 @@ describe('IdeasPanel', () => {
     expect(screen.getByRole('button', { name: "Add Musée d'Orsay to Day 4" })).toBeEnabled()
   })
 
+  it('shows the first five ideas, then the rest on "Show more"', async () => {
+    const seven = Array.from({ length: 7 }, (_, i) => ({ ...ORSAY, id: `p${i}`, name: `Place ${i}` }))
+    server.use(ideasHandler(undefined, seven))
+    withQueryClient(<Harness trip={makeTrip()} />)
+    await screen.findByText('Place 0')
+    expect(screen.queryByText('Place 5')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show 2 more' }))
+    expect(screen.getByText('Place 6')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Show \d+ more/ })).not.toBeInTheDocument()
+  })
+
   it('says when nothing was found, with a Google Maps link', async () => {
     server.use(ideasHandler(undefined, []))
     withQueryClient(<Harness trip={makeTrip()} />)
