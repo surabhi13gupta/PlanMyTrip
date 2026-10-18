@@ -39,7 +39,24 @@ export interface Activity {
 }
 
 export interface TripDetail extends Trip {
+  /** The read-only share link's code, or null when sharing is off. */
+  shareToken: string | null
   activities: Activity[]
+}
+
+export interface ShareInfo {
+  shareToken: string
+  sharedAt: string
+}
+
+/** The public, read-only copy of a shared trip (api-contract-spec.md §6.17). */
+export interface SharedTrip {
+  destination: string
+  startDate: string
+  endDate: string
+  tripType: TripType
+  durationDays: number
+  activities: { dayNumber: number; title: string; time: string | null; notes: string | null }[]
 }
 
 export interface TripInput {

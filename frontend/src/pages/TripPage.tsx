@@ -6,19 +6,22 @@ import { BackLink } from '../components/BackLink'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DayCard } from '../components/DayCard'
 import { DayNav } from '../components/DayNav'
+import { WeatherCredit } from '../components/DayWeather'
 import { IdeaGlyph } from '../components/IdeaGlyph'
 import { IdeasPanel } from '../components/IdeasPanel'
 import { PrintButton } from '../components/PrintButton'
+import { ShareDialog } from '../components/ShareDialog'
 import { ErrorState, Skeleton } from '../components/States'
 import { TripTypeBadge } from '../components/TripCard'
 import { buttonClass, cardClass, linkClass } from '../components/ui'
 import { useDeleteTrip, useTrip } from '../hooks/useTrips'
+import { useTripWeather } from '../hooks/useWeather'
 import { formatDuration, formatFromTo, formatShortDate, getTripDays, todayISO } from '../lib/dates'
 import { errorMessage, toastError } from '../lib/errors'
 import type { TripDetail } from '../types'
 import { NotFoundContent } from './NotFoundPage'
 
-/** The trip's day-by-day plan with Print, Delete, Edit, and the Ideas panel (US5–US9; mockup "Saved trip"). */
+/** The trip's day-by-day plan with Print, Delete, Edit, Share, weather, and the Ideas panel (US5–US13; mockup "Saved trip"). */
 export default function TripPage() {
   const { tripId = '' } = useParams()
   const trip = useTrip(tripId)
@@ -36,6 +39,8 @@ function TripPlan({ trip }: { trip: TripDetail }) {
   const deleteTrip = useDeleteTrip(trip.id)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const days = getTripDays(trip.startDate, trip.endDate)
+  const [sharing, setSharing] = useState(false)
+  const weather = useTripWeather(trip.destination, trip.startDate, trip.endDate)
   const [ideasOpen, setIdeasOpen] = useState(false)
   // The day the Ideas panel adds to; null until the panel is first opened (§4.5.1).
   const [ideasDay, setIdeasDay] = useState<number | null>(null)
@@ -72,19 +77,38 @@ function TripPlan({ trip }: { trip: TripDetail }) {
             <Link to={`/trips/${trip.id}/edit`} className={linkClass}>
               Edit
             </Link>
-            <button
-              type="button"
-              className={`${buttonClass.secondary} min-h-10 pl-2.5 aria-expanded:bg-primary-soft`}
-              aria-expanded={ideasOpen}
-              onClick={() => (ideasOpen ? closeIdeas() : openIdeas())}
-            >
-              <IdeaGlyph icon="bulb" />
-              Ideas for {trip.destination}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className={`${buttonClass.secondary} min-h-10 pl-2.5`}
+                aria-haspopup="dialog"
+                onClick={() => setSharing(true)}
+              >
+                <ShareIcon />
+                {trip.shareToken ? (
+                  <>
+                    Shared
+                    <span aria-hidden="true" className="size-2 rounded-full bg-success" />
+                  </>
+                ) : (
+                  'Share'
+                )}
+              </button>
+              <button
+                type="button"
+                className={`${buttonClass.secondary} min-h-10 pl-2.5 aria-expanded:bg-primary-soft`}
+                aria-expanded={ideasOpen}
+                onClick={() => (ideasOpen ? closeIdeas() : openIdeas())}
+              >
+                <IdeaGlyph icon="bulb" />
+                Ideas for {trip.destination}
+              </button>
+            </div>
           </div>
         </header>
 
         <DayNav days={days} />
+        {weather.size > 0 && <WeatherCredit />}
 
         {days.map((day) => (
           <DayCard
@@ -94,6 +118,7 @@ function TripPlan({ trip }: { trip: TripDetail }) {
             day={day}
             activities={trip.activities}
             onFindIdeas={openIdeas}
+            forecast={weather.get(day.date)}
           />
         ))}
 
@@ -127,6 +152,8 @@ function TripPlan({ trip }: { trip: TripDetail }) {
         onClose={closeIdeas}
       />
 
+      <ShareDialog trip={trip} open={sharing} onClose={() => setSharing(false)} />
+
       <ConfirmDialog
         open={confirmingDelete}
         title="Delete this trip?"
@@ -149,6 +176,17 @@ function TripPlan({ trip }: { trip: TripDetail }) {
         }
       />
     </div>
+  )
+}
+
+function ShareIcon() {
+  return (
+    <svg width={18} height={18} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="15" cy="4.5" r="2" />
+      <circle cx="5" cy="10" r="2" />
+      <circle cx="15" cy="15.5" r="2" />
+      <path d="M6.8 9l6.4-3.5M6.8 11l6.4 3.5" />
+    </svg>
   )
 }
 

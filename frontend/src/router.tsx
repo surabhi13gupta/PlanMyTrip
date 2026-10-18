@@ -17,6 +17,7 @@ const TripPage = lazy(() => import('./pages/TripPage'))
 const EditTripPage = lazy(() => import('./pages/EditTripPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
+const SharedTripPage = lazy(() => import('./pages/SharedTripPage'))
 
 /** Waits for the startup session check, and saves open forms if the page closes. */
 function AppShell() {
@@ -56,6 +57,8 @@ export const routes: RouteObject[] = [
       },
       // Open to everyone, logged in or not (US10).
       { path: 'about', element: <AboutPage /> },
+      // A read-only shared trip, for anyone with the link (US13).
+      { path: 's/:shareToken', element: <SharedTripPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

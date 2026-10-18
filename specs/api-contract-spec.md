@@ -1,6 +1,6 @@
 # API Contract Spec — PlanMyTrip
 
-> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-18
+> Status: Draft | Owner: Surabhi Gupta | Last updated: 2026-10-18 (sharing)
 > Version: v1
 > Related: [goal-spec.md](./goal-spec.md), [frontend-spec.md](./frontend-spec.md), [backend-spec.md](./backend-spec.md)
 
@@ -85,7 +85,7 @@ One of: `"solo"`, `"couple"`, `"family"`, `"friends"`.
 `durationDays` is calculated by the server: the number of days counting both `startDate` and `endDate`. It is read-only.
 
 ### TripDetail
-A `Trip` plus all its activities (sorted as described in section 1):
+A `Trip` plus all its activities (sorted as described in section 1), and `shareToken`: the code of the trip's read-only share link, or `null` when sharing is off (section 6.15):
 ```json
 {
   "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
@@ -96,6 +96,7 @@ A `Trip` plus all its activities (sorted as described in section 1):
   "durationDays": 5,
   "createdAt": "2026-10-04T14:35:00Z",
   "updatedAt": "2026-10-04T14:35:00Z",
+  "shareToken": null,
   "activities": [
     {
       "id": "7c8d9e0f-1a2b-4c3d-8e4f-5a6b7c8d9e0f",
@@ -178,6 +179,9 @@ Other errors that aren't field validation: `USERNAME_TAKEN` (409), `INVALID_CRED
 | DELETE | `/trips/{tripId}/activities/{activityId}` | Yes | Delete an activity | US5 |
 | GET | `/trips/{tripId}/ideas?category={id}` | Yes | Google Maps ideas at the trip's destination for one category | US8 |
 | GET | `/health` | No | Check that the API and database are up | — |
+| POST | `/trips/{tripId}/share` | Yes | Turn on the trip's read-only share link (or get the existing one) | US13 |
+| DELETE | `/trips/{tripId}/share` | Yes | Turn the share link off | US13 |
+| GET | `/shared/{shareToken}` | No | The read-only copy of a shared trip | US13 |
 
 All paths are relative to `/api/v1`. There is no PDF endpoint: the PDF is built in the browser from `GET /trips/{tripId}`.
 
@@ -495,6 +499,52 @@ The updated `Activity`.
 |--------|------|-----------|
 | 503 | `SERVICE_UNAVAILABLE` | The database can't be reached |
 
+### 6.15 `POST /trips/{tripId}/share`
+- **Description:** Turns on the trip's read-only share link. If it's already on, returns the existing link unchanged (so pressing the button twice doesn't break a link already sent).
+- **Auth required:** Yes. The trip must belong to the user (otherwise 404).
+- **Request body:** none (send `Content-Type: application/json` like every write; section 1).
+
+**Success response** — `200 OK`
+```json
+{ "shareToken": "kq3V9xZbM2pL7tRw0cYh8A", "sharedAt": "2026-10-18T10:00:00Z" }
+```
+`shareToken` is 22 URL-safe characters (128 random bits). The frontend builds the link as `<site>/s/<shareToken>`.
+
+**Error responses:** 401 `UNAUTHORIZED`, 404 `NOT_FOUND` (as for `GET /trips/{tripId}`).
+
+### 6.16 `DELETE /trips/{tripId}/share`
+- **Description:** Turns the share link off. The old code stops working at once and is never reused; sharing again makes a new code. Turning off a link that is already off is fine.
+- **Auth required:** Yes. The trip must belong to the user (otherwise 404).
+
+**Success response** — `204 No Content`
+
+**Error responses:** 401 `UNAUTHORIZED`, 404 `NOT_FOUND`.
+
+### 6.17 `GET /shared/{shareToken}`
+- **Description:** The read-only copy of a shared trip, for anyone with the link. It has no IDs, no timestamps, and nothing about the owner.
+- **Auth required:** No. A logged-in user gets the same answer.
+- **Headers:** `Cache-Control: no-store` (so a turned-off link isn't served from a cache) and `X-Robots-Tag: noindex`.
+
+**Success response** — `200 OK`
+```json
+{
+  "destination": "Paris, France",
+  "startDate": "2026-10-10",
+  "endDate": "2026-10-14",
+  "tripType": "couple",
+  "durationDays": 5,
+  "activities": [
+    { "dayNumber": 2, "title": "Visit the Louvre", "time": "09:00", "notes": "Start with the Denon wing." }
+  ]
+}
+```
+Activities are sorted as in section 1.
+
+**Error responses**
+| Status | Code | Condition |
+|--------|------|-----------|
+| 404 | `NOT_FOUND` | No trip has this code: it never existed, was turned off, or the trip was deleted |
+
 ## 7. Sessions & Rate Limits
 - **Session lifetime:** A session ends when any of these happens:
   - **The page is closed.** The next time the app opens in a tab, the frontend calls `POST /auth/logout` and shows the login page. Refreshing the page does not log out (see [frontend-spec.md §8](./frontend-spec.md#8-authentication-client-side)).
@@ -513,6 +563,9 @@ The updated `Activity`.
 | Can an activity be moved to another day? | Not in the MVP. `dayNumber` is set when the activity is created and can't be changed; to move one, delete it and add it again on the other day |
 | In what order are trips returned? | By `startDate` (earliest first), then `createdAt`. The frontend groups them into upcoming and past |
 | Do trips have a name? | No. A trip is identified by its destination and dates (from the mockups) |
+| Can a share link be guessed? | No: 128 random bits. It's stored as is (not hashed) so the owner can copy it again later; it only ever gives read-only access to one trip |
+| Does the shared copy show who owns the trip? | No. Only the trip itself |
+| Is there a weather endpoint? | No. The browser asks Open-Meteo directly ([frontend-spec.md §4.5.3](./frontend-spec.md#453-weather-on-each-day-us12)), so the backend isn't involved |
 
 ## 9. Changelog
 | Date | Version | Change |
@@ -520,3 +573,4 @@ The updated `Activity`.
 | 2026-10-04 | v1 | Initial contract: auth, trips, activities, health |
 | 2026-10-05 | v1 | Signup accepts an optional `name`; `User` includes `name` (string or `null`). Kept as v1: the app isn't released yet, and the frontend and backend change together |
 | 2026-10-18 | v1 | New `GET /trips/{tripId}/ideas` (section 6.13) and error codes `IDEAS_DAILY_LIMIT` (429) and `IDEAS_UNAVAILABLE` (503). Adding an endpoint keeps v1 |
+| 2026-10-18 | v1 | Read-only sharing: `shareToken` on `TripDetail`, `POST`/`DELETE /trips/{tripId}/share`, and public `GET /shared/{shareToken}` (sections 6.15–6.17). Additive, so still v1 |

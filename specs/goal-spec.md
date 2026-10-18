@@ -27,8 +27,8 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Pre-filling the day-by-day plan from dropdown choices
 - Adding ideas to the plan automatically (the traveler picks each one; F8)
 - Multiple destinations in one trip
-- Sharing a trip or editing it together with other users
-- Bookings, payments, weather, or a map shown inside the app (activities link out to Google Maps instead; F9)
+- Editing a trip together with other users (sharing is **read-only**: F13)
+- Bookings, payments, or a map shown inside the app (activities link out to Google Maps instead; F9)
 - Any paid third-party service. The one outside service, SerpApi, is used on its **free plan** only (250 searches a month, no card), with results saved for 30 days to make that last (F8)
 - A native mobile app or offline mode
 - Email verification or password reset
@@ -47,6 +47,8 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | F9 | Map links | Each activity has a "Map" link that opens it on Google Maps, on the Trip Page and in the PDF | P1 |
 | F10 | About page | A short "About PlanMyTrip" page saying what the app does, linked from the footer of every page; open to everyone, logged in or not | P2 |
 | F11 | Back links | A "← Back" link at the top of every page below My Trips, so nobody has to click the logo to go back | P1 |
+| F12 | Weather on each day | Each day of the plan shows the forecast at the destination (icon, high/low, chance of rain) when it's within the next 16 days, from the free Open-Meteo service | P1 |
+| F13 | Read-only share link | The owner can create a secret link to a trip; anyone with it can view the plan (and download the PDF) without an account, but can't change anything. The owner can turn the link off at any time | P1 |
 
 ## 7. User Stories
 <!-- Format: As a <persona>, I want <action> so that <benefit>. -->
@@ -136,15 +138,32 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
     - [ ] The About page shows "← Back", which returns to the page you came from (or to the start page if you opened About directly)
     - [ ] The link sits at the top left of the page content, in the same place on every page, and is easy to tap on a phone (at least 44px tall)
 
+- **US12:** As a traveler, I want to see the weather forecast on each day of my trip so that I can plan outdoor and indoor activities.
+  - Acceptance criteria:
+    - [ ] Each day card shows a weather icon, the temperature labelled "High" and "Low" in °C, and the chance of rain when it's 30% or more, for days from today up to 16 days ahead
+    - [ ] Days further ahead show "Forecast closer to the date"; days already past show nothing
+    - [ ] Temperatures are always in °C (Celsius)
+    - [ ] If the destination can't be found or the weather service is down, the plan looks as it did before, with no error
+    - [ ] No account, key, or payment is needed; the page credits Open-Meteo
+
+- **US13:** As a traveler, I want to send a read-only link to my trip so that family or friends can see the plan without making an account.
+  - Acceptance criteria:
+    - [ ] The Trip Page has a "Share" button that opens a dialog to create the link, copy it, or turn it off
+    - [ ] Anyone with the link sees the destination, dates, Trip Type, every day's activities with Map links and weather, and can download the PDF; they can't add, change, or delete anything, and they don't see who owns the trip
+    - [ ] Turning the link off stops it working straight away; sharing again makes a new link, so the old one stays dead
+    - [ ] Changes the owner makes appear on the shared page the next time it's opened or refreshed
+    - [ ] An unknown or turned-off link shows "This link isn't active" with a way to plan your own trip
+    - [ ] Shared pages ask search engines not to index them
+
 ## 8. Future Enhancements (Post-MVP)
 - Email-based signup, email verification, and password reset
 - Limiting repeated failed logins (e.g. slowing down or blocking password guessing)
 - Recording past trips (trips with a start date before today)
 - Multiple destinations in one trip
-- Sharing a trip, or planning it together with other travelers
+- Planning a trip together with other travelers (editing by more than one account); read-only sharing is F13
 - A paid SerpApi plan, or Google's own Places API, if 250 idea searches a month stop being enough (F8)
 - AI trip assistant (Claude + a Google Places search server): fully designed, then set aside on 2026-10-18 because it has running costs. The design is in git history (commit e2d37a3, `specs/ai-spec.md`) if it's picked up again
-- A map inside the app, weather, and booking links for activities (Google Maps links are covered by F9)
+- A map inside the app, and booking links for activities (Google Maps links are covered by F9; weather is F12)
 - An optional address field on activities, for more exact map links
 - Automated end-to-end browser tests (Playwright): written, but parked until the browser's system libraries are set up
 
@@ -171,7 +190,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 - Backend: Python + FastAPI REST JSON API, with Pydantic validation, SQLAlchemy, and Alembic migrations. Users stay logged in with an `httpOnly` session cookie backed by a `sessions` table. Details in [backend-spec.md](./backend-spec.md#2-tech-stack).
 - Database: PostgreSQL, hosted on **Neon**. It stores users, login sessions, trips, and activities.
 - Hosting / Deployment: **Vercel**, one project for both: the React frontend as static files and the FastAPI backend as Vercel Functions, combined with Vercel Services at the same address, deployed automatically on every push to GitHub. Database migrations run automatically during each Vercel build. Preview deployments get their own Neon database branch. Development runs entirely on your own computer. Details in [backend-spec.md](./backend-spec.md#14-deployment).
-- Third-party services (maps, weather, auth, etc.): Besides the hosts above (Vercel, Neon), the Ideas panel uses **SerpApi** on its free plan (250 searches a month) to get Google Maps results, called only by the backend and saved for 30 days. Map links are ordinary links to Google Maps ([Maps URLs](https://developers.google.com/maps/documentation/urls/get-started)): no API key and no cost. PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
+- Third-party services (maps, weather, auth, etc.): Besides the hosts above (Vercel, Neon), the Ideas panel uses **SerpApi** on its free plan (250 searches a month) to get Google Maps results, called only by the backend and saved for 30 days. Weather comes from **Open-Meteo** (free for non-commercial use, no key, credited on the page), called directly by the browser: the destination is sent to Open-Meteo to find it on the map, nothing else. Map links are ordinary links to Google Maps ([Maps URLs](https://developers.google.com/maps/documentation/urls/get-started)): no API key and no cost. PDFs are generated in the browser (`@react-pdf/renderer`), login is built in, and Fira Sans is bundled with the app rather than loaded from Google Fonts.
 
 ## 12. Open Questions
 - None right now.
@@ -204,4 +223,6 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | Map link | The "Map" link on an activity: opens a Google Maps search for the activity's title at the destination. |
 | About page | `/about`: a short description of what PlanMyTrip does, open to everyone. |
 | Back link | The "← My Trips", "← Back to trip", or "← Back" link at the top left of an inner page. |
+| Share link | A secret address (`/s/<code>`) that shows a read-only copy of one trip to anyone who has it. Made, copied, and turned off from the Trip Page. |
+| Forecast | The weather shown on a day card: icon, high/low temperature, chance of rain. Only for days up to 16 days ahead. |
 | My Trips | The home screen after login: a welcome, an "Add new trip" button, and the list of the user's trips. |

@@ -59,6 +59,24 @@ export function useDeleteTrip(tripId: string) {
   })
 }
 
+export function useShareMutations(tripId: string) {
+  const queryClient = useQueryClient()
+  const refresh = () => queryClient.invalidateQueries({ queryKey: queryKeys.trip(tripId) })
+  return {
+    share: useMutation({ mutationFn: () => tripsApi.share(tripId), onSuccess: refresh }),
+    unshare: useMutation({ mutationFn: () => tripsApi.unshare(tripId), onSuccess: refresh }),
+  }
+}
+
+/** A shared trip for anyone with the link; always fetched fresh (§4.10). */
+export function useSharedTrip(shareToken: string) {
+  return useQuery({
+    queryKey: queryKeys.shared(shareToken),
+    queryFn: () => tripsApi.shared(shareToken),
+    staleTime: 0,
+  })
+}
+
 export function useActivityMutations(tripId: string) {
   const queryClient = useQueryClient()
   const refresh = () => queryClient.invalidateQueries({ queryKey: queryKeys.trip(tripId) })

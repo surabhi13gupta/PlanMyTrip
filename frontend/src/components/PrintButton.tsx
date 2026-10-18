@@ -8,7 +8,7 @@ import { buttonClass } from './ui'
  * "Print": builds the itinerary PDF in the browser and downloads it (frontend-spec.md §4.5).
  * The PDF library is large, so it's only loaded on click.
  */
-export function PrintButton({ trip }: { trip: TripDetail }) {
+export function PrintButton({ trip, label = 'Print' }: { trip: TripDetail; label?: string }) {
   const [busy, setBusy] = useState(false)
 
   const print = async () => {
@@ -26,7 +26,7 @@ export function PrintButton({ trip }: { trip: TripDetail }) {
   return (
     <button type="button" className={buttonClass.primary} onClick={print} disabled={busy}>
       {busy && <Spinner label="Creating PDF" />}
-      Print
+      {label}
     </button>
   )
 }

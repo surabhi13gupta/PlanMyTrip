@@ -35,6 +35,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `/trips/:tripId` | Trip Page | Yes | A trip's days and activities, plus Print, Delete, and Edit | US5, US6, US7 |
 | `/trips/:tripId/edit` | Edit Trip | Yes | Change the trip's dates, destination, or Trip Type | US7 |
 | `/about` | About | No (works logged in or out) | What PlanMyTrip does, in a few lines | US10 |
+| `/s/:shareToken` | Shared Trip | No (works logged in or out) | Read-only view of a trip someone shared | US13 |
 | `*` | Not Found | No | 404 page with a link back to My Trips | — |
 
 **Route rules**
@@ -86,10 +87,10 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 
 ### 4.5 Trip Page (Day-by-Day Plan)
 - **Route:** `/trips/:tripId`
-- **Purpose:** Plan activities for each day (US5), print the itinerary (US6), edit or delete the trip (US7), browse ideas and add them to days (US8), and open activities on a map (US9). This one page covers both the "Day 1 … Day N" and the "Saved trip" sketches.
+- **Purpose:** Plan activities for each day (US5), print the itinerary (US6), edit or delete the trip (US7), browse ideas and add them to days (US8), open activities on a map (US9), see the weather (US12), and share a read-only link (US13). This one page covers both the "Day 1 … Day N" and the "Saved trip" sketches.
 - **Layout / sections** (follows the "Saved trip" sketch):
   0. **Back link:** "← My Trips" above the trip header (section 4.9).
-  1. **Trip header:** the destination as the page title, "From Oct 10 → To Oct 14, 2026 · 5 days" below it, the Trip Type badge, a small **"Edit"** link that opens `/trips/:tripId/edit`, and an **"Ideas for <destination>"** button (secondary style, lightbulb icon) that opens the Ideas panel (section 4.5.1).
+  1. **Trip header:** the destination as the page title, "From Oct 10 → To Oct 14, 2026 · 5 days" below it, the Trip Type badge, a small **"Edit"** link that opens `/trips/:tripId/edit`, a **"Share"** button (secondary style, share icon; it reads **"Shared"** with a green dot while the link is on) that opens the Share dialog (section 4.5.4), and an **"Ideas for <destination>"** button (secondary style, lightbulb icon) that opens the Ideas panel (section 4.5.1).
   2. **Day chips:** a strip of chips ("Day 1 · Oct 10", …) that scrolls sideways on mobile. Clicking a chip scrolls to that day.
   3. **Days:** a `DayCard` for each day, from Day 1 to Day N, stacked vertically. Each card lists its activities and has an "+ Add activity" button.
   4. **Action bar** at the bottom: **"Print"** (main button) and **"Delete"** (danger button). On mobile, the bar sticks to the bottom of the screen, so both are always reachable even on a 14-day trip.
@@ -148,6 +149,29 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - **Search quality:** the search uses the title as typed, so "Lunch" finds lunch places nearby while "Musée d'Orsay" finds the museum. An address field for exact results is future work (goal spec section 8).
 - **In the PDF:** each activity in `ItineraryPdf` ends with a small "Map" link (react-pdf's `Link`) with the same address, clickable in PDF viewers. Printed on paper it's just the word "Map", so it stays short.
 
+#### 4.5.3 Weather on each day (US12)
+- **Where:** in each `DayCard`'s heading row, right-aligned after the date: an icon, the labelled high and low with their unit ("☀️ High 24°C · Low 15°C"), always in **°C**, and "💧 40%" when the chance of rain is 30% or more. "High" and "Low" are small muted labels; the temperatures are medium weight. On phones it wraps under the date if there isn't room. Screen readers hear e.g. "Forecast: rain, high 18°C, low 11°C, 60% chance of rain". (Labels and units added after review on 2026-10-18: "24° / 15°" alone wasn't clear. At first US English browsers got °F; the owner chose °C for everyone the same day.)
+- **Which days:** days from today up to **15 days ahead** (16 days in all, Open-Meteo's limit). Days further ahead show "Forecast closer to the date" in small muted text; past days show nothing.
+- **Source:** [Open-Meteo](https://open-meteo.com), free for non-commercial use, no key, called **directly from the browser** (the backend isn't involved), in `lib/weather.ts`:
+  1. **Find the place:** `https://geocoding-api.open-meteo.com/v1/search?name=<first part of the destination>&count=10&language=en`. The first part is the text before the first comma ("Paris" from "Paris, France"). If the destination has more parts, the first result whose country, country code, or region matches one of them wins (so "Paris, Texas" finds Paris, Texas); otherwise the first result.
+  2. **Forecast:** `https://api.open-meteo.com/v1/forecast?latitude=…&longitude=…&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&start_date=…&end_date=…`, asking only for the trip's days that fall within today … today + 15. Open-Meteo answers in °C by default.
+- **Caching:** TanStack Query keys `['geocode', destination]` (kept for the visit) and `['weather', destination, startDate, endDate]` (fresh for 1 hour). Nothing is stored on the server.
+- **Icons:** the WMO weather code maps to one emoji and label: 0 ☀️ Clear · 1 🌤️ Mostly clear · 2 ⛅ Partly cloudy · 3 ☁️ Cloudy · 45, 48 🌫️ Fog · 51–57 🌦️ Drizzle · 61–67, 80–82 🌧️ Rain · 71–77, 85–86 🌨️ Snow · 95–99 ⛈️ Thunderstorm (`weatherLabel` in `lib/weather.ts`).
+- **When it fails** (place not found, network error, service down): no weather is shown and nothing else changes. No error message: weather is extra, not essential.
+- **Credit:** "Weather by Open-Meteo" (a small muted link to open-meteo.com) under the day chips, shown only when at least one day has a forecast.
+- **Not in the PDF:** a forecast goes stale, and the PDF is meant to be kept.
+
+#### 4.5.4 Share dialog (US13)
+- **Opens from** the "Share" button in the trip header. A native `<dialog>` (like `ConfirmDialog`), titled "Share this trip", closed with ✕, Escape, or "Done".
+- **Sharing off:** "Anyone with the link can see this trip's plan and download it as a PDF. They can't change anything, and they won't see your name." and a primary **"Create link"** button (`POST /trips/:tripId/share`).
+- **Sharing on:**
+  - The link (`<site origin>/s/<shareToken>`) in a read-only text box (selected when focused), with a **"Copy"** button beside it. After copying, the button reads "✓ Copied" for 2 seconds. If the clipboard is blocked, the text is selected so the user can copy it themselves.
+  - On phones, a **"Share…"** button that opens the phone's own share sheet (`navigator.share`) with the title "Trip to Paris, France"; it's hidden where the browser doesn't support it.
+  - "Open" link (new tab) to see what others see.
+  - **"Turn off link"** (danger text button). It asks first, inside the dialog: "Turn off this link? Anyone who has it won't be able to open the trip any more." → "Turn off" / "Keep". Turning off calls `DELETE /trips/:tripId/share`.
+- After either change the trip is refetched, so the header button shows "Share" or "Shared".
+- Errors show the usual toast; the dialog stays open.
+
 ### 4.6 Edit Trip
 - **Route:** `/trips/:tripId/edit`
 - **Purpose:** Change a trip's dates, destination, or Trip Type (US7).
@@ -198,6 +222,19 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 - My Trips, Signup and Login have no back link (they're the starting points); Not Found already has "Go to My Trips".
 - It's a real link (`<a>`), except About's "← Back" when it uses history, which is a button.
 
+### 4.10 Shared Trip (US13)
+- **Route:** `/s/:shareToken`. Public: works logged in or out; a logged-in visitor sees their name and Log out in the banner as usual.
+- **Data:** `GET /shared/:shareToken` (no login). Never cached between visits (TanStack `staleTime: 0`).
+- **Layout:** `SiteBanner`, then the same width as the Trip Page:
+  1. A small label "SHARED TRIP · READ-ONLY".
+  2. The trip header without Edit, Share, or Ideas: destination, "From … → To …, 2026 · 5 days", Trip Type badge.
+  3. Day chips, the "Weather by Open-Meteo" credit when shown, then a read-only card per day (`SharedDayCard`): heading, date, weather, and the activities with time, title, notes, and Map link. No add/edit/delete controls. Empty days say "Nothing planned".
+  4. A **"Download PDF"** button (the same `PrintButton` as the Trip Page).
+  5. A call to action card: "Plan your own trip with PlanMyTrip" → "Create a free account" (`/signup`) or, logged in, "Go to My Trips".
+- **Not found** (unknown or turned-off code): "This link isn't active" and "Ask the person who shared it for a new link.", plus the same call to action.
+- **Search engines:** the page adds `<meta name="robots" content="noindex">` while open (and the API sends `X-Robots-Tag: noindex`).
+- **Page title:** "Trip to Paris, France · PlanMyTrip".
+
 ## 5. Component Inventory
 | Component | Responsibility | Props | Used In |
 |-----------|----------------|-------|---------|
@@ -219,6 +256,9 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `IdeasPanel` | The Ideas panel: day picker, category tabs, idea cards, loading/empty/error states; docked on `xl`, a right-hand drawer from `sm`, a sheet on phones (section 4.5.1) | `trip`, `days`, `open`, `dayNumber`, `onDayChange`, `onClose` (the Trip Page holds the picked day, so "Find ideas for Day N" can set it) | Trip Page |
 | `IdeaCard` | One idea: photo, name, rating, address, Map link, Add button | `idea`, `icon`, `dayNumber`, `added`, `adding`, `onAdd` | `IdeasPanel` |
 | `MapLink` | A "Map" link that opens a Google Maps search in a new tab (section 4.5.2) | `query`, `label` | `ActivityItem` |
+| `DayWeather` | The forecast in a day's heading row, or "Forecast closer to the date" (section 4.5.3) | `forecast?`, `tooFar` | `DayCard`, `SharedDayCard` |
+| `ShareDialog` | Create, copy, share, open, or turn off the read-only link (section 4.5.4) | `trip`, `open`, `onClose` | Trip Page |
+| `SharedDayCard` | One read-only day on the Shared Trip page (section 4.10) | `day`, `activities`, `destination`, `weather?` | Shared Trip |
 | `DayCard` | One day: heading, sorted activities, add button | `day`, `activities`, `tripId` | Trip Page |
 | `ActivityItem` | Shows one activity with its Map link and edit/delete icons | `activity`, `destination`, `onEdit`, `onDelete` | `DayCard` |
 | `ActivityForm` | Inline add/edit form for an activity | `defaultValues?`, `onSubmit`, `onCancel` | `DayCard` |
@@ -376,8 +416,8 @@ Every page starts with the same banner: a mountain photo across the top, with th
 - **Targets:** Initial JavaScript ≤ 200 KB gzipped (not counting the PDF library). LCP < 2.5s on simulated 4G.
 
 ## 14. Testing Strategy
-- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), `mapsSearchUrl` (encodes spaces, commas, `&`, accents), `ideasForTripType` (five common categories + three per type), `ideaToActivity` (title and notes cut to their limits), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
-- **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day, Map links with the right address and `target`/`rel`), `IdeasPanel` (tabs per Trip Type, fetching a category on first open, Add to the picked day calls the activities API, the Added state, empty and error states with the Google Maps fallback), the Edit Trip warning dialog, `ProtectedRoute` redirects, `BackLink` (fixed link, or history back with a fallback to `/`), and the About page (logged-out and logged-in call to action; reachable without logging in). API calls are mocked with MSW.
+- **Unit:** `src/lib` helpers: `getTripDays`, `getTripDuration`, `sortActivities`, `countActivitiesBeyondDay`, `greetingName` (first name; username when there's no name; extra spaces), `mapsSearchUrl` (encodes spaces, commas, `&`, accents), `ideasForTripType` (five common categories + three per type), `ideaToActivity` (title and notes cut to their limits), `lib/weather.ts` (`pickPlace` matching "Paris, Texas", `forecastRange` clipping to today … today + 15, `weatherLabel` codes), and the Zod schemas (especially the start-date, end-date, and 14-day rules).
+- **Component:** `TripForm` (validation, live trip length), `DayCard` (sorting, empty day, Map links with the right address and `target`/`rel`), `IdeasPanel` (tabs per Trip Type, fetching a category on first open, Add to the picked day calls the activities API, the Added state, empty and error states with the Google Maps fallback), the Edit Trip warning dialog, `ProtectedRoute` redirects, `BackLink` (fixed link, or history back with a fallback to `/`), the About page (logged-out and logged-in call to action; reachable without logging in), `ShareDialog` (off → create → copy → turn off with confirmation), and the Shared Trip page (read-only, no edit controls, not-found message). API calls are mocked with MSW.
 - **End-to-end — future scope (parked):** The Playwright tests are written but commented out in `e2e/planmytrip.spec.ts`, and the `npm run e2e` script is removed, because Chromium's system libraries aren't installed on this machine. To bring them back: run `sudo npx playwright install-deps chromium`, uncomment the file, and restore the script. Until then, the flows below are checked by hand in the browser. What they cover: one test for the whole flow (sign up → add new trip → add activities → Print, and check that a PDF downloads), run at desktop size and at 375px. A second test: refresh keeps the user logged in; closing the page with an unsaved activity, then reopening, asks for login and shows the activity saved.
 
 ## 15. Project Structure
@@ -399,7 +439,7 @@ frontend/                 # vercel.json lives at the repository root (see backen
       trips.ts            # trips + activities calls
     hooks/                # useAuth, useTrips, useTrip, useActivityMutations
     pages/                # SignupPage, LoginPage, TripsPage, NewTripPage,
-                          # TripPlanPage, EditTripPage, AboutPage, NotFoundPage
+                          # TripPlanPage, EditTripPage, AboutPage, SharedTripPage, NotFoundPage
     components/           # components from section 5
     pdf/
       ItineraryPdf.tsx

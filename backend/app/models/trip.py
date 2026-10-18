@@ -1,10 +1,11 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from datetime import time as TimeOfDay
 
 from sqlalchemy import (
     CheckConstraint,
     Date,
+    DateTime,
     ForeignKey,
     Index,
     SmallInteger,
@@ -35,6 +36,10 @@ class Trip(UUIDPrimaryKey, Timestamps, Base):
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
     trip_type: Mapped[str] = mapped_column(String(10))
+    # The read-only share link's code; NULL when sharing is off. Not hashed: the owner can copy
+    # the link again, and it only ever gives read-only access to this one trip.
+    share_token: Mapped[str | None] = mapped_column(String(32), unique=True, nullable=True)
+    shared_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     activities: Mapped[list[Activity]] = relationship(
         back_populates="trip",

@@ -41,11 +41,17 @@ class RequestLogMiddleware:
                 level,
                 "%s %s %s %.0fms rid=%s",
                 scope["method"],
-                scope["path"],
+                _loggable_path(scope["path"]),
                 status_code,
                 duration_ms,
                 request_id,
             )
+
+
+def _loggable_path(path: str) -> str:
+    """Share-link codes work like passwords for one trip, so they're kept out of the logs."""
+    prefix, sep, _ = path.partition("/shared/")
+    return f"{prefix}{sep}***" if sep else path
 
 
 class RequireJsonMiddleware:
