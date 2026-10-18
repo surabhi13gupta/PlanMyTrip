@@ -7,6 +7,9 @@ export const queryKeys = {
   me: ['me'] as const,
   trips: ['trips'] as const,
   trip: (tripId: string) => ['trip', tripId] as const,
+  // The destination is part of the key, so editing it fetches ideas for the new place.
+  ideas: (tripId: string, destination: string, category: string) =>
+    ['ideas', tripId, destination, category] as const,
 }
 
 /** Set by the router module: where to send the user when their session has ended. */

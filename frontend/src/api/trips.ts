@@ -1,10 +1,12 @@
-import type { Activity, ActivityInput, Trip, TripDetail, TripInput } from '../types'
+import type { Activity, ActivityInput, IdeasResponse, Trip, TripDetail, TripInput } from '../types'
 import { api } from './client'
 
 export const tripPaths = {
   trip: (tripId: string) => `/trips/${tripId}`,
   activities: (tripId: string) => `/trips/${tripId}/activities`,
   activity: (tripId: string, activityId: string) => `/trips/${tripId}/activities/${activityId}`,
+  ideas: (tripId: string, category: string) =>
+    `/trips/${tripId}/ideas?category=${encodeURIComponent(category)}`,
 }
 
 export type TripUpdate = Partial<TripInput> & { confirmDeleteActivities?: boolean }
@@ -22,4 +24,7 @@ export const tripsApi = {
     api.patch<Activity>(tripPaths.activity(tripId, activityId), body),
   removeActivity: (tripId: string, activityId: string) =>
     api.delete(tripPaths.activity(tripId, activityId)),
+
+  ideas: (tripId: string, category: string) =>
+    api.get<IdeasResponse>(tripPaths.ideas(tripId, category)),
 }

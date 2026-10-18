@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     session_cookie_secure: bool | None = None
     session_idle_hours: int = 12
+    # Ideas panel (SerpApi free plan). No key: the ideas endpoint answers 503 IDEAS_UNAVAILABLE.
+    serpapi_key: str | None = None
+    ideas_cache_days: int = 30
+    ideas_daily_searches_per_user: int = 20
 
     @property
     def sqlalchemy_url(self) -> str:

@@ -1,57 +1,75 @@
-import type { TripType } from '../types'
+import type { ActivityInput, IdeaPlace, TripType } from '../types'
 
 export type IdeaIcon =
   | 'sights' | 'museum' | 'park' | 'food' | 'cafe' | 'walk' | 'view' | 'market'
-  | 'heart' | 'wine' | 'kid' | 'fish' | 'play' | 'night' | 'group'
+  | 'heart' | 'wine' | 'kid' | 'fish' | 'play' | 'night' | 'group' | 'bulb'
 
-export interface Idea {
-  /** Shown on the chip, e.g. "Museums". */
+export interface IdeaCategory {
+  /** Sent to the API as `?category=` (api-contract-spec.md §6.13), e.g. "museums". */
+  id: string
+  /** Shown on the tab, e.g. "Museums". */
   label: string
-  /** Sent to Google Maps before " in <destination>", e.g. "museums". */
+  /** The words searched before " in <destination>", for the Google Maps fallback link. */
   search: string
   icon: IdeaIcon
-  /** True for the chips picked by the Trip Type (shaded differently). */
+  /** True for the tabs picked by the Trip Type (shaded differently). */
   byTripType: boolean
 }
 
-type IdeaSeed = Omit<Idea, 'byTripType'>
+type CategorySeed = Omit<IdeaCategory, 'byTripType'>
 
-// The chip table in frontend-spec.md §4.5.1.
-const COMMON: IdeaSeed[] = [
-  { label: 'Top sights', search: 'top attractions', icon: 'sights' },
-  { label: 'Museums', search: 'museums', icon: 'museum' },
-  { label: 'Parks', search: 'parks and gardens', icon: 'park' },
-  { label: 'Restaurants', search: 'restaurants', icon: 'food' },
-  { label: 'Cafés', search: 'cafes', icon: 'cafe' },
+// The category table in frontend-spec.md §4.5.1 (the backend has the same ids).
+const COMMON: CategorySeed[] = [
+  { id: 'top-sights', label: 'Top sights', search: 'top attractions', icon: 'sights' },
+  { id: 'museums', label: 'Museums', search: 'museums', icon: 'museum' },
+  { id: 'parks', label: 'Parks', search: 'parks and gardens', icon: 'park' },
+  { id: 'restaurants', label: 'Restaurants', search: 'restaurants', icon: 'food' },
+  { id: 'cafes', label: 'Cafés', search: 'cafes', icon: 'cafe' },
 ]
 
-const BY_TRIP_TYPE: Record<TripType, IdeaSeed[]> = {
+const BY_TRIP_TYPE: Record<TripType, CategorySeed[]> = {
   solo: [
-    { label: 'Walking tours', search: 'walking tours', icon: 'walk' },
-    { label: 'Viewpoints', search: 'viewpoints', icon: 'view' },
-    { label: 'Markets', search: 'markets', icon: 'market' },
+    { id: 'walking-tours', label: 'Walking tours', search: 'walking tours', icon: 'walk' },
+    { id: 'viewpoints', label: 'Viewpoints', search: 'viewpoints', icon: 'view' },
+    { id: 'markets', label: 'Markets', search: 'markets', icon: 'market' },
   ],
   couple: [
-    { label: 'Romantic dinner', search: 'romantic restaurants', icon: 'heart' },
-    { label: 'Viewpoints', search: 'viewpoints', icon: 'view' },
-    { label: 'Wine bars', search: 'wine bars', icon: 'wine' },
+    { id: 'romantic-dinner', label: 'Romantic dinner', search: 'romantic restaurants', icon: 'heart' },
+    { id: 'viewpoints', label: 'Viewpoints', search: 'viewpoints', icon: 'view' },
+    { id: 'wine-bars', label: 'Wine bars', search: 'wine bars', icon: 'wine' },
   ],
   family: [
-    { label: 'Kid-friendly', search: 'kid friendly activities', icon: 'kid' },
-    { label: 'Zoos & aquariums', search: 'zoo aquarium', icon: 'fish' },
-    { label: 'Playgrounds', search: 'playgrounds', icon: 'play' },
+    { id: 'kid-friendly', label: 'Kid-friendly', search: 'kid friendly activities', icon: 'kid' },
+    { id: 'zoos-aquariums', label: 'Zoos & aquariums', search: 'zoo aquarium', icon: 'fish' },
+    { id: 'playgrounds', label: 'Playgrounds', search: 'playgrounds', icon: 'play' },
   ],
   friends: [
-    { label: 'Nightlife', search: 'nightlife', icon: 'night' },
-    { label: 'Food markets', search: 'food markets', icon: 'market' },
-    { label: 'Group activities', search: 'group activities', icon: 'group' },
+    { id: 'nightlife', label: 'Nightlife', search: 'nightlife', icon: 'night' },
+    { id: 'food-markets', label: 'Food markets', search: 'food markets', icon: 'market' },
+    { id: 'group-activities', label: 'Group activities', search: 'group activities', icon: 'group' },
   ],
 }
 
-/** The five chips every trip gets, then the three picked by its Trip Type. */
-export function ideasForTripType(tripType: TripType): Idea[] {
+/** The five categories every trip gets, then the three picked by its Trip Type. */
+export function ideasForTripType(tripType: TripType): IdeaCategory[] {
   return [
-    ...COMMON.map((idea) => ({ ...idea, byTripType: false })),
-    ...BY_TRIP_TYPE[tripType].map((idea) => ({ ...idea, byTripType: true })),
+    ...COMMON.map((category) => ({ ...category, byTripType: false })),
+    ...BY_TRIP_TYPE[tripType].map((category) => ({ ...category, byTripType: true })),
   ]
+}
+
+/** The activity an idea becomes: its name as the title, its address as the notes, no time. */
+export function ideaToActivity(idea: IdeaPlace): ActivityInput {
+  return {
+    title: idea.name.slice(0, 100),
+    time: null,
+    notes: idea.address ? idea.address.slice(0, 500) : null,
+  }
+}
+
+/** Review counts as Google shows them: 310, 1.5k, 98k. */
+export function shortCount(n: number): string {
+  if (n < 1000) return String(n)
+  if (n < 10000) return `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k`
+  return `${Math.round(n / 1000)}k`
 }

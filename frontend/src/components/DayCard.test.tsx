@@ -13,7 +13,15 @@ describe('DayCard', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Day 2' })).toBeInTheDocument()
     expect(screen.getByText('Sun, Oct 11')).toBeInTheDocument()
     expect(screen.getByText('No activities planned')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ideas for Paris, France' })).toHaveAttribute('href', '#ideas')
+  })
+
+  it('offers "Find ideas for Day N" on an empty day', async () => {
+    const onFindIdeas = vi.fn()
+    withQueryClient(
+      <DayCard tripId="trip-1" destination="Paris, France" day={day} activities={[]} onFindIdeas={onFindIdeas} />,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Find ideas for Day 2' }))
+    expect(onFindIdeas).toHaveBeenCalledWith(2)
   })
 
   it('gives every activity a Map link to Google Maps at the destination, in a new tab', () => {
@@ -29,7 +37,6 @@ describe('DayCard', () => {
     expect(new URL(link.getAttribute('href')!).searchParams.get('query')).toBe("Musée d'Orsay, Paris, France")
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
-    expect(screen.queryByText(/Need ideas/)).not.toBeInTheDocument()
   })
 
   it("lists only this day's activities, timed first, then untimed in order added", () => {

@@ -59,3 +59,22 @@ export interface TripDay {
   dayNumber: number
   date: string
 }
+
+/** One place in the Ideas panel (api-contract-spec.md §6.13). */
+export interface IdeaPlace {
+  id: string
+  name: string
+  rating: number | null
+  reviews: number | null
+  priceLevel: string | null
+  type: string | null
+  address: string | null
+  thumbnailUrl: string | null
+}
+
+export interface IdeasResponse {
+  category: string
+  query: string
+  fetchedAt: string
+  ideas: IdeaPlace[]
+}

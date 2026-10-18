@@ -1,58 +1,7 @@
 import type { ReactNode } from 'react'
-import { ideasForTripType, type IdeaIcon } from '../lib/ideas'
-import { mapsSearchUrl } from '../lib/maps'
-import type { TripType } from '../types'
-import { ExternalLinkIcon } from './Icons'
-import { cardClass } from './ui'
+import type { IdeaIcon } from '../lib/ideas'
 
-/** The section the empty-day hint links to. */
-export const IDEAS_SECTION_ID = 'ideas'
-
-/** "Ideas for <destination>": chips that open Google Maps searches (frontend-spec.md §4.5.1, US8). */
-export function TripIdeas({ destination, tripType }: { destination: string; tripType: TripType }) {
-  return (
-    <section
-      id={IDEAS_SECTION_ID}
-      aria-labelledby="ideas-heading"
-      className={`${cardClass} grid scroll-mt-24 gap-3 px-[18px] pt-3.5 pb-4`}
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-        <h2 id="ideas-heading" className="min-w-0 text-lg font-semibold break-words text-primary">
-          Ideas for {destination}
-        </h2>
-        <span className="text-sm text-muted">Opens Google Maps in a new tab</span>
-      </div>
-      <ul className="flex flex-wrap gap-2">
-        {ideasForTripType(tripType).map((idea) => (
-          <li key={idea.label}>
-            <a
-              href={mapsSearchUrl(`${idea.search} in ${destination}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`${idea.label} in ${destination}, on Google Maps (opens in a new tab)`}
-              className={
-                'inline-flex min-h-10 items-center gap-1.5 rounded-full border pr-3.5 pl-2.5 text-[0.9rem] font-medium ' +
-                'text-primary transition-colors focus-visible:outline-3 focus-visible:outline-offset-2 ' +
-                'focus-visible:outline-primary ' +
-                (idea.byTripType
-                  ? 'border-transparent bg-primary-soft hover:border-primary'
-                  : 'border-primary bg-surface hover:bg-primary-soft')
-              }
-            >
-              <IdeaGlyph icon={idea.icon} />
-              {idea.label}
-              <span className="opacity-60">
-                <ExternalLinkIcon />
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
-// Small line icons for the chips; decorative (the link's label names the idea).
+// Small line icons for the idea categories; decorative (the tab or card text names them).
 const GLYPHS: Record<IdeaIcon, ReactNode> = {
   sights: <path d="M10 2.5l2.2 4.6 5 .6-3.7 3.4 1 5-4.5-2.5-4.5 2.5 1-5L2.8 7.7l5-.6z" />,
   museum: <path d="M3 8h14L10 3.5zM4.5 8v7M8 8v7M12 8v7M15.5 8v7M3 16.5h14" />,
@@ -87,6 +36,7 @@ const GLYPHS: Record<IdeaIcon, ReactNode> = {
     </>
   ),
   play: <path d="M3 17.5V6l4-3 4 3v11.5M11 10l6 7.5M3 11h8" />,
+  bulb: <path d="M7.5 14.5h5M8 17h4M10 2.5a5 5 0 0 0-3 9c.6.5 1 1.2 1 2v1h4v-1c0-.8.4-1.5 1-2a5 5 0 0 0-3-9z" />,
   night: <path d="M15.5 12.5A6.5 6.5 0 0 1 7.5 4.5a6.5 6.5 0 1 0 8 8z" />,
   group: (
     <>
@@ -97,11 +47,11 @@ const GLYPHS: Record<IdeaIcon, ReactNode> = {
   ),
 }
 
-function IdeaGlyph({ icon }: { icon: IdeaIcon }) {
+export function IdeaGlyph({ icon, size = 18 }: { icon: IdeaIcon; size?: number }) {
   return (
     <svg
-      width={18}
-      height={18}
+      width={size}
+      height={size}
       viewBox="0 0 20 20"
       fill="none"
       stroke="currentColor"

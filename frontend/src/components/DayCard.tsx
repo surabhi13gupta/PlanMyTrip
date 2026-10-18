@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react'
+import { useState } from 'react'
 import { tripPaths } from '../api/trips'
 import { useActivityMutations } from '../hooks/useTrips'
 import { activitiesForDay } from '../lib/activities'
@@ -10,19 +10,20 @@ import { ActivityForm } from './ActivityForm'
 import { ConfirmDialog } from './ConfirmDialog'
 import { EditIcon, TrashIcon } from './Icons'
 import { MapLink } from './MapLink'
-import { IDEAS_SECTION_ID } from './TripIdeas'
 import { buttonClass, cardClass, iconButtonClass, linkClass } from './ui'
 
 interface DayCardProps {
   tripId: string
-  /** For the Map links and the empty-day hint (§4.5.1–4.5.2). */
+  /** For the Map links (§4.5.2). */
   destination: string
   day: TripDay
   activities: Activity[]
+  /** Opens the Ideas panel with this day picked ("Find ideas for Day N" on an empty day, §4.5). */
+  onFindIdeas?: (dayNumber: number) => void
 }
 
 /** One day of the plan: heading, its activities in order, and "+ Add activity" (frontend-spec.md §4.5). */
-export function DayCard({ tripId, destination, day, activities }: DayCardProps) {
+export function DayCard({ tripId, destination, day, activities, onFindIdeas }: DayCardProps) {
   const mutations = useActivityMutations(tripId)
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -44,15 +45,13 @@ export function DayCard({ tripId, destination, day, activities }: DayCardProps) 
       </div>
 
       {items.length === 0 && !adding && (
-        <div className="grid gap-0.5">
+        <div className="grid justify-items-start gap-0.5">
           <p className="text-muted italic">No activities planned</p>
-          <p className="text-[0.9375rem] text-muted">
-            Need ideas? See{' '}
-            <a href={`#${IDEAS_SECTION_ID}`} className={linkClass} onClick={scrollToIdeas}>
-              Ideas for {destination}
-            </a>{' '}
-            above.
-          </p>
+          {onFindIdeas && (
+            <button type="button" className={`${linkClass} text-[0.9375rem]`} onClick={() => onFindIdeas(day.dayNumber)}>
+              Find ideas for Day {day.dayNumber}
+            </button>
+          )}
         </div>
       )}
 
@@ -177,13 +176,4 @@ export function ActivityItem({
       </div>
     </li>
   )
-}
-
-/** Scrolls to the Ideas section without adding "#ideas" to the address bar. */
-function scrollToIdeas(event: MouseEvent<HTMLAnchorElement>) {
-  event.preventDefault()
-  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-  document
-    .getElementById(IDEAS_SECTION_ID)
-    ?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
 }
