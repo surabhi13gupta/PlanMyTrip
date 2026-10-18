@@ -92,8 +92,12 @@ This is the same on every database: your local Docker database, the test databas
 | start_date | date | not null | Calendar date, no time zone |
 | end_date | date | not null, check `end_date >= start_date`, check `end_date - start_date <= 13` | At most 14 days, counting both dates |
 | trip_type | varchar(10) | not null, check in (`solo`, `couple`, `family`, `friends`) | |
+| share_token | varchar(32) | null, unique | The read-only share link's code (`secrets.token_urlsafe(16)`, 22 characters); `NULL` when sharing is off. Stored as is, not hashed, so the owner can copy the link again |
+| shared_at | timestamptz | null | When the current link was made; `NULL` when sharing is off |
 | created_at | timestamptz | not null, default now() | |
 | updated_at | timestamptz | not null, default now() | |
+
+`share_token` and `shared_at` were added by migration `0005_trip_share_link`: two nullable columns, so existing trips simply aren't shared and code still running is unaffected.
 
 ### 4.4 activities
 | Field | Type | Constraints | Description |
@@ -134,6 +138,7 @@ Not linked to trips: two trips to "Paris, France" share the same saved results. 
 - `activities (trip_id, day_number)`: loads a trip's plan
 - `idea_searches.query_key`: unique (cache lookup)
 - `idea_searches (fetched_by, fetched_at)`: counts a user's searches today
+- `trips.share_token`: unique (opens a shared trip; `NULL`s don't clash)
 
 ## 5. Business Logic / Services
 | Service | Responsibilities | Key Rules |
@@ -142,6 +147,7 @@ Not linked to trips: two trips to "Paris, France" share the same saved results. 
 | `session_service` | Create, look up, renew, and delete sessions | A session ends after 12 hours without any request (idle timeout). On each request, if less than 11 hours remain, `expires_at` is pushed back to 12 hours from now (so it is written at most once an hour). Expired sessions are treated as missing and deleted when found. Logging out when the page closes is handled by the frontend (see [frontend-spec.md §8](./frontend-spec.md#8-authentication-client-side)); the idle timeout cleans up sessions from tabs that were simply closed |
 | `trip_service` | List, create, read, update, and delete trips | Every query filters by the current user; another user's trip is "not found" (404), never "forbidden", so trip IDs can't be probed. See the trip rules below |
 | `idea_service` | Idea lists for the Ideas panel (section 7) | Checks the trip belongs to the user. Builds the query `"<search words> in <destination>"` from the category table in [frontend-spec.md §4.5.1](./frontend-spec.md#451-ideas-panel-us8) (kept in `app/services/idea_categories.py`). A saved row younger than 30 days is returned without calling SerpApi. Otherwise: if the user already triggered 20 searches today (UTC) → 429 `IDEAS_DAILY_LIMIT`; else call SerpApi, keep the first 10 places, save (insert or update the row), and return them. If SerpApi fails but an older saved row exists, that row is returned instead of an error |
+| `share_service` | Turn a trip's share link on or off; load a shared trip by its code | On/off need the trip to belong to the user (404 otherwise). Turning on keeps an existing code; otherwise it makes a new one with `secrets.token_urlsafe(16)` and sets `shared_at`. Turning off sets both columns to `NULL`. Loading by code needs no login and returns only the destination, dates, Trip Type, length, and activities (no IDs, owner, or timestamps); an unknown code is 404 |
 | `activity_service` | Create, update, and delete activities | The trip must belong to the current user. `day_number` must be between 1 and the trip's length. Activities are returned sorted: those with a time first, by time; then those without, by `created_at` |
 
 **Trip rules**
@@ -287,9 +293,10 @@ PlanMyTrip/
       errors.py             # ApiError + standard error responses
       models/               # SQLAlchemy: user.py, session.py, trip.py, activity.py, idea_search.py
       schemas/              # Pydantic request/response models (camelCase aliases)
-      routers/              # auth.py, trips.py, activities.py, ideas.py, health.py
+      routers/              # auth.py, trips.py, activities.py, ideas.py, share.py, health.py
       services/             # auth_service.py, session_service.py, trip_service.py, activity_service.py,
-                            # idea_service.py, idea_categories.py, serpapi.py (the only code that calls SerpApi)
+                            # idea_service.py, idea_categories.py, serpapi.py (the only code that calls SerpApi),
+                            # share_service.py
       security.py           # password hashing, token generation and hashing
     tests/
       conftest.py           # test database, transaction rollback, logged-in client fixtures
@@ -298,6 +305,7 @@ PlanMyTrip/
       test_activities.py
       test_ownership.py
       test_ideas.py         # SerpApi replaced by a fake: cache hit/miss/expiry, daily limit, errors, ownership
+      test_share.py         # on/off, same code twice, new code after off, public read-only shape, headers, ownership
   frontend/                 # see frontend-spec.md
   specs/
 ```
