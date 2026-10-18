@@ -108,11 +108,15 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 #### 4.5.1 Ideas panel (US8)
 - **Opening:** the "Ideas for <destination>" button in the trip header, or "Find ideas for Day N" on an empty day. The panel remembers the last category and day picked while the page is open.
 - **Layout:**
-  - **Laptops (`lg`, 1024px and wider):** a panel **docked on the right**, 400px wide, full height below the banner and sticky while the page scrolls. The day plan stays visible on the left (the page becomes two columns), so added ideas appear in their day straight away.
-  - **Phones and tablets:** a **sheet that slides up** over the page, about 85% of the screen tall, with a drag handle and a close button. After adding, a toast "Added to Day 2" confirms it.
+  - **Large screens (`xl`, 1280px and wider):** a panel **docked on the right**, 440px wide, sticky and as tall as the window. While it's open the Trip Page widens from 1024px to 1280px, so the day plan keeps its normal width on the left and added ideas appear in their day straight away.
+  - **Tablets and small laptops (`sm` to `xl`, 640–1279px):** a **drawer from the right**, 440px wide and the full height of the window, over the dimmed page.
+  - **Phones (below 640px):** a **sheet that slides up**, almost the full screen tall (it leaves a strip of the dimmed page at the top), with a drag handle and a close button.
+  - Below `xl` the panel covers part of the page, so the page behind it doesn't scroll while it's open, and after adding, a toast "Added to Day 2" confirms it. Tapping the dimmed page closes the panel.
+  - **Only one scrollbar:** the panel's header, day picker and tabs stay put; only the list of ideas scrolls, with a thin scrollbar. Nothing in the panel scrolls sideways.
+  - Revised after review on 2026-10-18: the first build (400px panel inside the 1024px page, tabs in one sideways-scrolling row) felt cramped and showed extra scrollbars.
   - It's a dialog (`role="dialog"`, labelled "Ideas for Paris, France"); Escape and the ✕ button close it, and focus returns to the button that opened it.
 - **Header:** "Ideas for Paris, France", the ✕ button, and the **Add to** day picker: a select with every day ("Day 2 · Sun, Oct 11"). It starts on the day the panel was opened for, else today's day if the trip is under way, else Day 1. Every "Add" button in the panel uses this day.
-- **Category tabs:** a row of tabs that scrolls sideways (`role="tablist"`). Five for every trip, then three chosen by the Trip Type (the `ideasForTripType` helper in `lib/ideas.ts`); each has a small icon. The panel opens on **Top sights**. The `id` is what the frontend sends to the API (section 6.13 of the API contract); the backend turns it into the search words.
+- **Category tabs** (`role="tablist"`): from `sm` up, the tabs **wrap onto two or three lines**, so all eight are visible with no sideways scrolling. On phones they're one row that you swipe sideways, with the scrollbar hidden and the row's right edge fading out to show there's more. Five for every trip, then three chosen by the Trip Type (the `ideasForTripType` helper in `lib/ideas.ts`); each has a small icon. The panel opens on **Top sights**. The `id` is what the frontend sends to the API (section 6.13 of the API contract); the backend turns it into the search words.
 
   | Shown for | Tab label (`id` → search words) |
   |---|---|
@@ -122,10 +126,10 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
   | Family | Kid-friendly (`kid-friendly` → "kid friendly activities") · Zoos & aquariums (`zoos-aquariums` → "zoo aquarium") · Playgrounds (`playgrounds`) |
   | Friends | Nightlife (`nightlife`) · Food markets (`food-markets`) · Group activities (`group-activities`) |
 
-- **Idea cards** (`IdeaCard`), up to 10 per category, in Google Maps' order:
-  - A 64px square **photo** on the left (rounded; a light placeholder with the category icon if there's no photo or it fails to load). Photos are `loading="lazy"` with `referrerpolicy="no-referrer"`.
-  - **Name** (semi-bold), then **⭐ 4.7 (310k)** (rating and review count, shortened) and the **price level** ("$$") when known, then the **type and address** ("Art museum · 1 Rue de la Légion d'Honneur") in muted text, one line each, cut with "…" if long.
-  - A 📍 **Map** link (`MapLink`, the same as on activities, searching "<name>, <address>") and an **"Add to Day 2"** button (primary, small).
+- **Idea cards** (`IdeaCard`), up to 10 per category, in Google Maps' order. The first **5** show at once; a **"Show 5 more"** button under them shows the rest, so the list stays short. Each card has room to breathe (16px between cards, 20px side padding in the panel):
+  - A 72px square **photo** on the left (rounded; a light placeholder with the category icon if there's no photo or it fails to load). Photos are `loading="lazy"` with `referrerpolicy="no-referrer"`.
+  - **Name** (semi-bold), then **⭐ 4.7 (310k)** (rating and review count, shortened) and the **price level** ("$$") when known, then the **type and address** ("Art museum · 1 Rue de la Légion d'Honneur") in muted text. The name and the address can each **wrap onto two lines** before being cut with "…", so most names show in full.
+  - A row under the text with the 📍 **Map** link (`MapLink`, the same as on activities, searching "<name>, <address>") on the left and an **"Add to Day 2"** button (primary, at least 40px tall for easy tapping) on the right.
   - After adding, the button becomes **"✓ Added to Day 2"** (green, disabled) for the rest of the visit. Picking another day re-enables it, so the same idea can go on two days.
 - **Adding** uses the existing `POST /trips/:tripId/activities`: `title` = the place name (cut to 100 characters), `time` = none, `notes` = the address (cut to 500). The trip is refreshed, so the activity appears in its day. Failures show the usual error toast and leave the button as it was.
 - **Loading:** three skeleton cards. A category is fetched only when its tab is first opened; switching back is instant (TanStack Query keeps it for the visit; the backend keeps it for 30 days).
@@ -174,7 +178,7 @@ Terms such as Trip, Day, Activity, and Itinerary are used as defined in the Glos
 | `TripCard` | One trip in the list: destination, dates, Trip Type | `trip` | My Trips |
 | `TripHeader` | Destination, dates, Trip Type badge, and Edit link | `trip` | Trip Page |
 | `DayNav` | Horizontal day chips that scroll to a day | `days` | Trip Page |
-| `IdeasPanel` | The Ideas panel: day picker, category tabs, idea cards, loading/empty/error states; docked on `lg`, a sheet below (section 4.5.1) | `trip`, `days`, `open`, `dayNumber`, `onDayChange`, `onClose` (the Trip Page holds the picked day, so "Find ideas for Day N" can set it) | Trip Page |
+| `IdeasPanel` | The Ideas panel: day picker, category tabs, idea cards, loading/empty/error states; docked on `xl`, a right-hand drawer from `sm`, a sheet on phones (section 4.5.1) | `trip`, `days`, `open`, `dayNumber`, `onDayChange`, `onClose` (the Trip Page holds the picked day, so "Find ideas for Day N" can set it) | Trip Page |
 | `IdeaCard` | One idea: photo, name, rating, address, Map link, Add button | `idea`, `icon`, `dayNumber`, `added`, `adding`, `onAdd` | `IdeasPanel` |
 | `MapLink` | A "Map" link that opens a Google Maps search in a new tab (section 4.5.2) | `query`, `label` | `ActivityItem` |
 | `DayCard` | One day: heading, sorted activities, add button | `day`, `activities`, `tripId` | Trip Page |
@@ -393,6 +397,7 @@ The frontend and the FastAPI backend are deployed together as **one Vercel proje
 |----------|----------|
 | How does the app suggest activities without costs? | **An Ideas panel with Google Maps results via SerpApi's free plan**, five common categories plus three per Trip Type, each idea addable to any day; and a **Map link on every activity** (sections 4.5.1–4.5.2). No AI |
 | Ideas as links out to Google Maps, or listed in the app? | **Listed in the app**, in a right-hand panel (a sheet on phones), with "Add to Day N". The first version (chips linking to Google Maps) was replaced after review on 2026-10-18 |
+| The first Ideas panel felt cramped and showed extra scrollbars. What changed? | (Review, 2026-10-18.) **Wider panel** (440px) that docks only from 1280px, with the page widening to make room; a **drawer** on tablets and small laptops and a near-full-screen **sheet** on phones; **tabs wrap** instead of scrolling sideways; **5 ideas at first** with "Show 5 more"; names and addresses wrap to two lines; the page behind a drawer or sheet doesn't scroll (section 4.5.1) |
 | Where does the panel open from? | The **"Ideas for <destination>" button** in the trip header, and **"Find ideas for Day N"** on empty days (that day pre-picked) |
 | Map links in the PDF too? | **Yes:** a small clickable "Map" on each activity |
 | Banner photo: the 700×350 `mountains.jpg`, or a larger one? | First the Seiser Alm photo (Unsplash); then **Mount Fuji with the Chureito Pagoda by Tomáš Malík (Pexels)**, 1920×973, chosen from four candidates (section 10.1) |

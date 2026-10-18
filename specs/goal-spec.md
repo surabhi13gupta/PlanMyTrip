@@ -43,7 +43,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 | F5 | Print itinerary | A "Print" button downloads the trip's itinerary as a PDF | P0 |
 | F6 | Edit / delete trip | Change a trip's dates, destination, or Trip Type; delete the trip from its page | P1 |
 | F7 | Responsive UI | Every screen is usable on desktop and on mobile browsers | P0 |
-| F8 | Ideas panel | "Ideas for <destination>" opens a panel (right side on laptops, a sheet on phones) listing Google Maps places by category ("Museums", "Restaurants", …, plus three chosen by Trip Type), each with rating, address, and photo, and an "Add to Day N" button | P1 |
+| F8 | Ideas panel | "Ideas for <destination>" opens a panel (on the right on laptops and tablets, a sheet on phones) listing Google Maps places by category ("Museums", "Restaurants", …, plus three chosen by Trip Type), each with rating, address, and photo, and an "Add to Day N" button | P1 |
 | F9 | Map links | Each activity has a "Map" link that opens it on Google Maps, on the Trip Page and in the PDF | P1 |
 
 ## 7. User Stories
@@ -107,7 +107,7 @@ In the MVP, one user plans the trip on their own. Who they travel with is stored
 
 - **US8:** As a traveler, I want to browse ideas for my destination and add the ones I like to a day so that I can fill my plan without searching elsewhere.
   - Acceptance criteria:
-    - [ ] The Trip Page has an "Ideas for <destination>" button; it opens the Ideas panel (on the right on laptops, as a sheet from the bottom on phones)
+    - [ ] The Trip Page has an "Ideas for <destination>" button; it opens the Ideas panel (beside the plan on large screens, a drawer from the right on tablets and small laptops, a sheet from the bottom on phones), which is roomy and easy to use on every screen size, with no sideways scrolling
     - [ ] The panel has category tabs: Top sights, Museums, Parks, Restaurants, Cafés, plus three chosen by the Trip Type (e.g. Family adds "Kid-friendly")
     - [ ] Each idea shows its name, rating and number of reviews, address, a photo when there is one, and a "Map" link
     - [ ] "Add to Day N" adds the idea as an activity on the chosen day (the name as the title, the address in the notes); any day of the trip can be picked
